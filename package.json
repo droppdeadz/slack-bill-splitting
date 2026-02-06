@@ -1,0 +1,33 @@
+{
+  "name": "copter-slack-bot",
+  "version": "1.0.0",
+  "description": "Copter for Slack - Group bill splitting & money collection bot inspired by KBANK's Khunthong (ขุนทอง)",
+  "main": "dist/app.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/app.js",
+    "dev": "tsx watch src/app.ts",
+    "db:reset": "rm -f data/copter.db && pnpm dev"
+  },
+  "dependencies": {
+    "@slack/bolt": "^4.1.0",
+    "better-sqlite3": "^12.0.0",
+    "dotenv": "^16.4.7",
+    "node-cron": "^3.0.3",
+    "uuid": "^11.0.5"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.0",
+    "@types/node-cron": "^3.0.11",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["better-sqlite3", "esbuild"]
+  }
+}
