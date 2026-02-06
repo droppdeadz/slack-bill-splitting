@@ -32,9 +32,10 @@
 3. Add these scopes:
    - `chat:write` — Send messages
    - `chat:write.public` — Send messages to channels the bot isn't in
+   - `chat:update` — Update bill cards in real-time
    - `commands` — Add slash commands
-   - `im:write` — Send direct messages
-   - `users:read` — Read user names
+   - `im:write` — Send direct messages (reminders & `/copter me`)
+   - `users:read` — Read user display names
 
 ---
 
@@ -45,7 +46,7 @@
 3. Fill in:
    - **Command:** `/copter`
    - **Short Description:** `Split bills and collect money from your team`
-   - **Usage Hint:** `[create | list | me | history | help]`
+   - **Usage Hint:** `[create | list [all|mine|owed] | me | history | help]`
 4. Click **"Save"**
 
 ---
@@ -124,7 +125,7 @@ You should see:
 ## How It Works (For Non-Developers)
 
 ### Creating a Bill
-Type `/copter create` in any channel. A form pops up where you enter the bill name, total amount, and select who should split it. The bot posts a bill card showing everyone's share.
+Type `/copter create` in any channel. A form pops up where you enter the bill name, total amount, and select who should split it. You can choose **Split Equally** (everyone pays the same) or **Custom Amounts** (enter how much each person owes). The bot posts a bill card showing everyone's share.
 
 ### Paying a Bill
 When you've paid your share, click the **"Mark as Paid"** button on the bill card. The bill creator gets a DM asking them to confirm your payment.
@@ -133,8 +134,10 @@ When you've paid your share, click the **"Mark as Paid"** button on the bill car
 The bill creator can click **"Remind All"** to send DM reminders to everyone who hasn't paid yet. The bot also sends automatic daily reminders at 9 AM.
 
 ### Checking Your Bills
-- `/copter me` — See all bills you still owe
+- `/copter me` — Get a DM with all bills you still owe
 - `/copter list` — See all active bills in the current channel
+- `/copter list mine` — See only bills you created
+- `/copter list owed` — See only bills you owe on
 - `/copter history` — See past completed/cancelled bills
 
 ---

@@ -194,11 +194,9 @@ copter/
 
 ### Phase 2: Management — COMPLETED
 - [x] `/copter list` - View active bills in channel
-- [x] `/copter me` - View my outstanding bills (ephemeral in channel)
+- [x] `/copter me` - View my outstanding bills
 - [x] `/copter history` - View past bills
 - [x] `Cancel Bill` functionality (creator only)
-
-> **Note:** Remaining gaps for list filters and `/copter me` DM are tracked in Phase 3 below.
 
 ### Phase 3: Reminders & Polish — COMPLETED
 - [x] `Remind All` button - manual reminders via DM
