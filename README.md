@@ -1,8 +1,8 @@
 # Copter - Bill Splitting Bot for Slack
 
-> Inspired by KBANK's [Khunthong (ขุนทอง)](https://www.kasikornbank.com/en/News/Pages/Khunthong.aspx) — a popular LINE chatbot in Thailand for group expense splitting and money collection.
+> Inspired by KBANK's [Khunthong (ขุนทอง)](https://www.kasikornbank.com/en/News/Pages/Khunthong.aspx) — a popular LINE chatbot in Thailand for group expense splitting.
 
-Copter brings the same bill-splitting experience to Slack. Create bills, split expenses among teammates, track payments, and send reminders — all without leaving your Slack workspace.
+A Slack bot focused on bill splitting and payment tracking. Create bills, split expenses among teammates, track who has paid, and send reminders — all without leaving your Slack workspace.
 
 ## Features
 
@@ -169,9 +169,9 @@ src/
 
 See [plan.md](plan.md) for the full implementation plan and roadmap.
 
-**Completed:** Bill creation, equal splits, payment confirmation flow, bill management commands, manual & automatic reminders.
+**Completed:** Bill creation, equal & custom splits, payment confirmation flow, bill management commands, manual & automatic reminders, list filters, DM for outstanding bills.
 
-**Coming next:** Custom split amounts, list filters, recurring monthly bills, gamification (payment medals), Slack Home Tab dashboard.
+**Coming next:** Bill image recognition (OCR to auto-fill bills from receipt photos), payment integration (PromptPay QR).
 
 ## License
 

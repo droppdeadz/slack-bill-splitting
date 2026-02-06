@@ -1,10 +1,10 @@
 # Copter for Slack - Implementation Plan
 
-> Inspired by KBANK's Khunthong (ขุนทอง) - a group bill splitting & money collection bot for Slack.
+> Inspired by KBANK's Khunthong (ขุนทอง) — a popular LINE chatbot for group expense splitting.
 
 ## Overview
 
-Copter Slack Bot allows users to create bills, split expenses among group members, track payments, and send reminders - all within Slack channels and DMs.
+Copter is a Slack bot focused on bill splitting and payment tracking. Create bills, split expenses among group members, track who has paid, and send reminders — all within Slack channels and DMs.
 
 ---
 
@@ -200,28 +200,19 @@ copter/
 ### Phase 3: Reminders & Polish — COMPLETED
 - [x] `Remind All` button - manual reminders via DM
 - [x] Automatic daily reminders (node-cron)
-- [x] Custom split amounts (non-equal) — *Dynamic modal updates: when "Custom Amounts" is selected and participants are chosen, per-participant amount inputs appear. Validates that custom amounts sum to the total.*
+- [x] Custom split amounts (non-equal) — *Dynamic modal updates: when "Custom Amounts" is selected and participants are chosen, per-participant amount inputs appear. Each selected user must have their owed amount filled in. Validates that custom amounts sum to the total.*
 - [x] Bill summary when all participants have paid (auto-completes bill)
 - [x] `/copter list` filters — *`/copter list all` (default), `/copter list mine` (bills I created), `/copter list owed` (bills I owe on). Filter hint shown in response.*
 - [x] `/copter me` as true DM — *Opens a DM conversation with the user and posts the outstanding bills summary there. Shows brief ephemeral confirmation in the original channel.*
 
-### Phase 4: Recurring & Multi-bill — NOT STARTED
-> Inspired by Khunthong's recurring monthly bills (หารบิลแบบรายเดือน) and multi-bill trip settlement features.
-- [ ] Recurring/monthly bills — *For shared subscriptions (Netflix, Spotify, YouTube Premium), rent, utilities. Config: day/time, frequency, duration, custom amounts per person. Original Khunthong carries unpaid balances forward to next period.*
-- [ ] Multi-bill trip settlement — *Aggregate multiple bills from a trip/outing and calculate net settlement amounts (who owes whom), reducing N transactions to minimal transfers*
-- [ ] Multi-currency support — *Partially scaffolded: DB stores currency, `formatCurrency` supports 5 currencies, but users cannot select currency in the modal (defaults to env config). Original Khunthong provides exchange rate info via `#ค่าเงิน`.*
+### Phase 4: Bill Image Recognition — NOT STARTED
+> Automatically read bills from uploaded images and pre-fill the create bill form. Currently, the bill owner must enter all details manually.
+- [ ] Receipt/bill image upload in create modal — *Allow users to upload a photo of a receipt or bill*
+- [ ] OCR / image parsing — *Extract bill items, amounts, and total from the uploaded image*
+- [ ] Auto-fill bill form from parsed data — *Pre-populate bill name, total amount, and optionally line items from the parsed receipt*
 
-### Phase 5: Gamification & Social — NOT STARTED
-> Inspired by Khunthong's medal system and social features that drive engagement and prompt payments.
-- [ ] Payment speed medals (gold/silver/bronze) — *Original Khunthong awards medals based on how quickly participants pay, creating social incentive and gamification*
-- [ ] Payment streaks / stats — *Track payment behavior over time (e.g., "always pays within 1 hour")*
-- [ ] Social wallet (group savings pool) — *Original Khunthong's "เก็บเงินกลุ่ม" feature where everyone contributes toward a shared goal (e.g., group vacation fund)*
-
-### Phase 6: Platform & Integration — NOT STARTED
-- [ ] Slack Home Tab dashboard — *Personal overview: active bills, outstanding debts, payment history at a glance*
-- [ ] Expense analytics / monthly summary — *Spending breakdown by channel, category, or time period*
-- [ ] Integration with payment services (PromptPay QR, etc.) — *Original Khunthong integrates with K PLUS and verifies e-Slip QR codes from any Thai bank*
-- [ ] `@copter` mention support — *Allow `@copter create` as alternative to slash commands (event subscription already scaffolded in app config)*
+### Phase 5: Payment Integration — NOT STARTED
+- [ ] Integration with payment services (PromptPay QR, etc.) — *Generate PromptPay QR codes for easy payment, and optionally verify payments via e-Slip QR*
 
 ---
 
@@ -292,4 +283,4 @@ pnpm dev
 2. **Socket Mode for dev** - No need for ngrok/public URL during development.
 3. **Creator confirms payments** - Since this is not connected to real banking, the bill creator acts as the "source of truth" for payment verification.
 4. **Channel-scoped bills** - Bills are tied to channels for context, but users can see all their bills via `/copter me`.
-5. **Block Kit for rich UI** - Slack's Block Kit provides interactive buttons, modals, and rich formatting similar to the original KBANK Khunthong UI.
+5. **Block Kit for rich UI** - Slack's Block Kit provides interactive buttons, modals, and rich formatting for a smooth in-Slack experience.
