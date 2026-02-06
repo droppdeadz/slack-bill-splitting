@@ -30,9 +30,8 @@
 1. In the left sidebar, click **"OAuth & Permissions"**
 2. Scroll to **"Scopes" → "Bot Token Scopes"**
 3. Add these scopes:
-   - `chat:write` — Send messages
+   - `chat:write` — Send and update messages
    - `chat:write.public` — Send messages to channels the bot isn't in
-   - `chat:update` — Update bill cards in real-time
    - `commands` — Add slash commands
    - `im:write` — Send direct messages (reminders & `/copter me`)
    - `users:read` — Read user display names

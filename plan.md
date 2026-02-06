@@ -165,8 +165,7 @@ copter/
 
 ### Required Scopes (Bot Token)
 - `commands` - Slash commands
-- `chat:write` - Post messages
-- `chat:update` - Update bill cards
+- `chat:write` - Send and update messages
 - `im:write` - Send DMs for reminders
 - `users:read` - Get user display names
 
