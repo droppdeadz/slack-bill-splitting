@@ -104,6 +104,34 @@ export function getBillsByCreator(
     .all(creatorId) as Bill[];
 }
 
+export function getActiveBillsByChannelAndCreator(
+  channelId: string,
+  creatorId: string
+): Bill[] {
+  const db = getDb();
+  return db
+    .prepare(
+      "SELECT * FROM bills WHERE channel_id = ? AND creator_id = ? AND status = 'active' ORDER BY created_at DESC"
+    )
+    .all(channelId, creatorId) as Bill[];
+}
+
+export function getActiveBillsOwedByUserInChannel(
+  channelId: string,
+  userId: string
+): Bill[] {
+  const db = getDb();
+  return db
+    .prepare(
+      `SELECT DISTINCT b.* FROM bills b
+       JOIN participants p ON p.bill_id = b.id
+       WHERE b.channel_id = ? AND b.status = 'active'
+         AND p.user_id = ? AND p.status != 'paid'
+       ORDER BY b.created_at DESC`
+    )
+    .all(channelId, userId) as Bill[];
+}
+
 export function getCompletedBillsByChannel(channelId: string): Bill[] {
   const db = getDb();
   return db

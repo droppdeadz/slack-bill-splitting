@@ -200,13 +200,13 @@ copter/
 
 > **Note:** Remaining gaps for list filters and `/copter me` DM are tracked in Phase 3 below.
 
-### Phase 3: Reminders & Polish — PARTIAL
+### Phase 3: Reminders & Polish — COMPLETED
 - [x] `Remind All` button - manual reminders via DM
 - [x] Automatic daily reminders (node-cron)
-- [ ] Custom split amounts (non-equal) — *Modal has the dropdown option but no custom amount input fields; always uses equal split logic. Original Khunthong supports "หารไม่เท่า" (unequal split) where each person pays for what they consumed.*
+- [x] Custom split amounts (non-equal) — *Dynamic modal updates: when "Custom Amounts" is selected and participants are chosen, per-participant amount inputs appear. Validates that custom amounts sum to the total.*
 - [x] Bill summary when all participants have paid (auto-completes bill)
-- [ ] `/copter list` filters — *Filter by `created by me` / `owed by me` / `all` (currently shows all active bills without filtering)*
-- [ ] `/copter me` as true DM — *Currently shows as ephemeral in-channel message; original Khunthong shows personal debt summary privately*
+- [x] `/copter list` filters — *`/copter list all` (default), `/copter list mine` (bills I created), `/copter list owed` (bills I owe on). Filter hint shown in response.*
+- [x] `/copter me` as true DM — *Opens a DM conversation with the user and posts the outstanding bills summary there. Shows brief ephemeral confirmation in the original channel.*
 
 ### Phase 4: Recurring & Multi-bill — NOT STARTED
 > Inspired by Khunthong's recurring monthly bills (หารบิลแบบรายเดือน) and multi-bill trip settlement features.

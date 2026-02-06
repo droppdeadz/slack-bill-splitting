@@ -1,8 +1,7 @@
 import { App } from "@slack/bolt";
 import { config } from "./config";
 import { initializeDatabase } from "./database/schema";
-import { registerCreateCommand } from "./commands/create";
-import { handleListCommand } from "./commands/list";
+import { handleListCommand, type ListFilter } from "./commands/list";
 import { handleMeCommand } from "./commands/me";
 import { handleHistoryCommand } from "./commands/history";
 import { registerMarkPaidAction } from "./actions/markPaid";
@@ -11,6 +10,11 @@ import { registerRemindAllAction } from "./actions/remindAll";
 import { registerCancelBillAction } from "./actions/cancelBill";
 import { registerViewDetailsAction } from "./actions/viewDetails";
 import { startReminderScheduler } from "./scheduler/reminders";
+import { createBill, getBillById, updateBillMessageTs } from "./models/bill";
+import { addParticipantsBulk, getParticipantsByBill } from "./models/participant";
+import { buildBillCard } from "./views/billCard";
+import { splitEqual, validateCustomSplit } from "./utils/splitCalculator";
+import { buildCreateBillModal } from "./views/createBillModal";
 
 // Initialize the Slack app (Socket Mode for development)
 const app = new App({
@@ -30,10 +34,7 @@ app.command("/copter", async ({ command, ack, client, body }) => {
 
   switch (subcommand) {
     case "create":
-      // Handled by registerCreateCommand (opens modal)
-      // We need to ack and open modal here since Bolt matches first handler
       await ack();
-      const { buildCreateBillModal } = await import("./views/createBillModal");
       await client.views.open({
         trigger_id: body.trigger_id,
         view: {
@@ -45,10 +46,17 @@ app.command("/copter", async ({ command, ack, client, body }) => {
       });
       break;
 
-    case "list":
+    case "list": {
       await ack();
-      await handleListCommand(client, command.channel_id, command.user_id);
+      const listArgs = command.text.trim().split(/\s+/);
+      const filterArg = listArgs[1] || "all";
+      const validFilters: ListFilter[] = ["all", "mine", "owed"];
+      const filter: ListFilter = validFilters.includes(filterArg as ListFilter)
+        ? (filterArg as ListFilter)
+        : "all";
+      await handleListCommand(client, command.channel_id, command.user_id, filter);
       break;
+    }
 
     case "me":
       await ack();
@@ -80,8 +88,8 @@ app.command("/copter", async ({ command, ack, client, body }) => {
                 "*Available Commands:*",
                 "",
                 "`/copter create` — Create a new bill and split it",
-                "`/copter list` — View active bills in this channel",
-                "`/copter me` — View your outstanding bills",
+                "`/copter list [all|mine|owed]` — View active bills in this channel",
+                "`/copter me` — View your outstanding bills (sent as DM)",
                 "`/copter history` — View completed/cancelled bills",
                 "`/copter help` — Show this help message",
               ].join("\n"),
@@ -94,19 +102,70 @@ app.command("/copter", async ({ command, ack, client, body }) => {
   }
 });
 
-// ── Modal Submission ──────────────────────────────
-// Register the create bill modal handler separately
-import { createBill, getBillById, updateBillMessageTs } from "./models/bill";
-import { addParticipantsBulk, getParticipantsByBill } from "./models/participant";
-import { buildBillCard } from "./views/billCard";
-import { splitEqual } from "./utils/splitCalculator";
+// ── Dynamic Modal Updates (Custom Split) ─────────
+// When split_type or participants change, update the modal to show/hide custom amount fields
+async function updateCreateModal(body: any, client: any): Promise<void> {
+  const view = body.view;
+  const values = view.state.values;
+  const splitType =
+    values.split_type?.split_type_input?.selected_option?.value || "equal";
+  const participantIds =
+    values.participants?.participants_input?.selected_users || [];
 
+  // Fetch display names for selected participants
+  const participantNames: Record<string, string> = {};
+  if (splitType === "custom" && participantIds.length > 0) {
+    for (const userId of participantIds) {
+      try {
+        const info = await client.users.info({ user: userId });
+        participantNames[userId] =
+          info.user?.real_name || info.user?.name || userId;
+      } catch {
+        participantNames[userId] = userId;
+      }
+    }
+  }
+
+  await client.views.update({
+    view_id: view.id,
+    hash: view.hash,
+    view: {
+      ...buildCreateBillModal({
+        splitType,
+        participantIds,
+        participantNames,
+      }),
+      private_metadata: view.private_metadata,
+    },
+  });
+}
+
+app.action("split_type_input", async ({ ack, body, client }) => {
+  await ack();
+  await updateCreateModal(body, client);
+});
+
+app.action("participants_input", async ({ ack, body, client }) => {
+  await ack();
+  const view = (body as any).view;
+  const values = view?.state?.values;
+  const splitType =
+    values?.split_type?.split_type_input?.selected_option?.value;
+  // Only update modal if custom split is active (to avoid unnecessary updates)
+  if (splitType === "custom") {
+    await updateCreateModal(body, client);
+  }
+});
+
+// ── Modal Submission Handler ─────────────────────
 app.view("create_bill_modal", async ({ ack, view, client, body }) => {
   const values = view.state.values;
   const billName = values.bill_name.bill_name_input.value!;
   const totalAmountStr = values.total_amount.total_amount_input.value!;
-  const splitType = values.split_type.split_type_input.selected_option!.value as "equal" | "custom";
-  const participantIds = values.participants.participants_input.selected_users!;
+  const splitType = values.split_type.split_type_input.selected_option!
+    .value as "equal" | "custom";
+  const participantIds =
+    values.participants.participants_input.selected_users!;
 
   const totalAmount = parseFloat(totalAmountStr);
 
@@ -126,6 +185,61 @@ app.view("create_bill_modal", async ({ ack, view, client, body }) => {
     return;
   }
 
+  let participantData: { userId: string; amount: number }[];
+
+  if (splitType === "custom") {
+    // Read custom amounts from per-participant input fields
+    const customAmounts: number[] = [];
+    const errors: Record<string, string> = {};
+
+    for (const userId of participantIds) {
+      const blockId = `custom_amount_${userId}`;
+      const amountStr = values[blockId]?.custom_amount_input?.value;
+      if (!amountStr) {
+        errors[blockId] = "Please enter an amount";
+        continue;
+      }
+      const amount = parseFloat(amountStr);
+      if (isNaN(amount) || amount <= 0) {
+        errors[blockId] = "Please enter a valid positive number";
+        continue;
+      }
+      customAmounts.push(amount);
+    }
+
+    if (Object.keys(errors).length > 0) {
+      await ack({ response_action: "errors", errors });
+      return;
+    }
+
+    if (!validateCustomSplit(customAmounts, totalAmount)) {
+      // Find the first custom amount block to show the error
+      const firstBlockId = `custom_amount_${participantIds[0]}`;
+      await ack({
+        response_action: "errors",
+        errors: {
+          [firstBlockId]: `Custom amounts must add up to ${totalAmount}`,
+        },
+      });
+      return;
+    }
+
+    participantData = participantIds.map(
+      (userId: string, i: number) => ({
+        userId,
+        amount: customAmounts[i],
+      })
+    );
+  } else {
+    const amounts = splitEqual(totalAmount, participantIds.length);
+    participantData = participantIds.map(
+      (userId: string, i: number) => ({
+        userId,
+        amount: amounts[i],
+      })
+    );
+  }
+
   await ack();
 
   const metadata = JSON.parse(view.private_metadata);
@@ -139,12 +253,6 @@ app.view("create_bill_modal", async ({ ack, view, client, body }) => {
     creatorId,
     channelId,
   });
-
-  const amounts = splitEqual(totalAmount, participantIds.length);
-  const participantData = participantIds.map((userId: string, i: number) => ({
-    userId,
-    amount: amounts[i],
-  }));
 
   addParticipantsBulk(bill.id, participantData);
 
