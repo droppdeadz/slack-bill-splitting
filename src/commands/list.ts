@@ -55,6 +55,10 @@ export async function handleListCommand(
 
   const billSummaries = bills.map((bill) => {
     const participants = getParticipantsByBill(bill.id);
+    if (bill.status === "pending") {
+      const selectedCount = participants.filter((p) => p.has_selected).length;
+      return `- :hourglass_flowing_sand: *${bill.name}* — ${formatCurrency(bill.total_amount, bill.currency)} | Selecting items: ${selectedCount}/${participants.length} | by <@${bill.creator_id}>`;
+    }
     const paidCount = participants.filter((p) => p.status === "paid").length;
     return `- *${bill.name}* — ${formatCurrency(bill.total_amount, bill.currency)} | ${paidCount}/${participants.length} paid | by <@${bill.creator_id}>`;
   });

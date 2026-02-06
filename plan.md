@@ -272,16 +272,16 @@ copter/
 - [x] `/copter history` - View past bills
 - [x] `Cancel Bill` functionality (creator only)
 
-### Phase 3: Item-based Splitting & Polish — IN PROGRESS
+### Phase 3: Item-based Splitting & Polish — COMPLETED
 - [x] `Remind All` button - manual reminders via DM
 - [x] Automatic daily reminders (node-cron)
 - [x] Bill summary when all participants have paid (auto-completes bill)
 - [x] `/copter list` filters — *`/copter list all` (default), `/copter list mine` (bills I created), `/copter list owed` (bills I owe on). Filter hint shown in response.*
 - [x] `/copter me` as true DM — *Opens a DM conversation with the user and posts the outstanding bills summary there. Shows brief ephemeral confirmation in the original channel.*
-- [ ] Item-based bill creation — *Add "Item-based" as a split type alongside "Equal". When selected, creator enters bill name, list of items with costs, and selects participants. Total is calculated from items automatically. Replaces the old "Custom Amounts" per-person input.*
-- [ ] Participant item selection via DM — *After bill creation, bot DMs each participant with an interactive checklist of items. Participant selects which items they owe for. Shared items (selected by multiple people) have their cost split equally among selectors. Bill card updates selection progress.*
-- [ ] Creator finalizes calculation — *Once all participants have selected items, creator is notified and clicks "Complete Calculation". Per-person amounts are computed and the bill moves to active payment tracking.*
-- [ ] Bill status lifecycle — *New statuses: "pending" (waiting for item selections), "active" (payment tracking), "completed", "cancelled". Bill card UI adapts to current status.*
+- [x] Item-based bill creation — *Add "Item-based" as a split type alongside "Equal". When selected, creator enters bill name, list of items with costs, and selects participants. Total is calculated from items automatically. Replaces the old "Custom Amounts" per-person input.*
+- [x] Participant item selection via DM — *After bill creation, bot DMs each participant with an interactive checklist of items. Participant selects which items they owe for. Shared items (selected by multiple people) have their cost split equally among selectors. Bill card updates selection progress.*
+- [x] Creator finalizes calculation — *Once all participants have selected items, creator is notified and clicks "Complete Calculation". Per-person amounts are computed and the bill moves to active payment tracking.*
+- [x] Bill status lifecycle — *Statuses: "pending" (waiting for item selections, item-based only), "active" (payment tracking), "completed", "cancelled". Bill card UI adapts to current status.*
 
 ### Phase 4: Bill Image Recognition — NOT STARTED
 > Automatically read bills from uploaded images and pre-fill the create bill form. Currently, the bill owner must enter all details manually.
@@ -337,23 +337,37 @@ copter/
 └──────────────────────────────────────┘
 ```
 
-### Item-based — Active Payment State
+### Item-based — Active Payment State (Khunthong-inspired)
+
+> Inspired by KBANK Khunthong: each participant shows their total with a per-item
+> breakdown underneath. Creator marked with 👑. Payment status shown per person.
+
 ```
-┌──────────────────────────────────────┐
-│  Lunch at Sushi Place       ฿1,320  │
-│  Created by @Sea_Talay              │
-│  4 items · 4 participants           │
-│─────────────────────────────────────│
-│  @Danit          ฿455        Paid   │
-│  @Grace          ฿280      Unpaid   │
-│  @Kong           ฿232.50   Unpaid   │
-│  @Nut            ฿352.50   Unpaid   │
-│─────────────────────────────────────│
-│  Collected: ฿455 / ฿1,320          │
-│  ████████░░░░░░░░░░░░  34%         │
-│─────────────────────────────────────│
-│  [Mark as Paid] [Remind All] [···]  │
-└──────────────────────────────────────┘
+┌──────────────────────────────────────────┐
+│  Lunch at Sushi Place            ฿1,320  │
+│  Created by @Sea_Talay                   │
+│  Item-based split (4 people)             │
+│──────────────────────────────────────────│
+│                                          │
+│  ✅ @Danit 👑              ฿455    Paid  │
+│     Salmon Sushi ฿175  ·  Ramen ฿280    │
+│                                          │
+│  🔴 @Grace                ฿280  Unpaid   │
+│     Ramen ฿280                           │
+│                                          │
+│  🔴 @Kong              ฿232.50  Unpaid   │
+│     Gyoza ฿170  ·  Green Tea ฿62.50     │
+│                                          │
+│  🔴 @Nut               ฿352.50  Unpaid   │
+│     Salmon Sushi ฿175  ·  Gyoza ฿170    │
+│     Green Tea ฿7.50                      │
+│                                          │
+│──────────────────────────────────────────│
+│  Collected: ฿455 / ฿1,320               │
+│  ████████░░░░░░░░░░░░  34%              │
+│──────────────────────────────────────────│
+│  [Mark as Paid] [Remind All] [Cancel]    │
+└──────────────────────────────────────────┘
 ```
 
 ---

@@ -156,9 +156,7 @@ src/
 
 See [plan.md](plan.md) for the full implementation plan and roadmap.
 
-**Completed:** Equal split, payment confirmation flow, bill management commands, manual & automatic reminders, list filters, DM for outstanding bills.
-
-**In progress:** Item-based split (enter items + costs, participants self-select items, creator finalizes calculation).
+**Completed:** Equal split, item-based split (enter items + costs, participants self-select items via DM, creator finalizes calculation), payment confirmation flow, bill management commands, manual & automatic reminders, list filters, DM for outstanding bills, full bill status lifecycle (pending/active/completed/cancelled).
 
 **Coming next:** Bill image recognition (OCR to auto-fill items from receipt photos), payment integration (PromptPay QR).
 

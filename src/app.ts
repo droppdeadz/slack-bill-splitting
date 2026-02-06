@@ -9,12 +9,22 @@ import { registerConfirmPaymentAction } from "./actions/confirmPayment";
 import { registerRemindAllAction } from "./actions/remindAll";
 import { registerCancelBillAction } from "./actions/cancelBill";
 import { registerViewDetailsAction } from "./actions/viewDetails";
+import { registerSelectItemsAction } from "./actions/selectItems";
+import { registerCompleteCalcAction } from "./actions/completeCalc";
 import { startReminderScheduler } from "./scheduler/reminders";
 import { createBill, getBillById, updateBillMessageTs } from "./models/bill";
-import { addParticipantsBulk, getParticipantsByBill } from "./models/participant";
+import {
+  addParticipantsBulk,
+  getParticipantsByBill,
+} from "./models/participant";
+import { addBillItemsBulk, getItemsByBill } from "./models/billItem";
 import { buildBillCard } from "./views/billCard";
-import { splitEqual, validateCustomSplit } from "./utils/splitCalculator";
-import { buildCreateBillModal } from "./views/createBillModal";
+import { buildItemSelectDM } from "./views/itemSelectMessage";
+import { splitEqual } from "./utils/splitCalculator";
+import {
+  buildCreateBillModal,
+  parseItemsInput,
+} from "./views/createBillModal";
 
 // Initialize the Slack app (Socket Mode for development)
 const app = new App({
@@ -102,80 +112,39 @@ app.command("/copter", async ({ command, ack, client, body }) => {
   }
 });
 
-// ── Dynamic Modal Updates (Custom Split) ─────────
-// When split_type or participants change, update the modal to show/hide custom amount fields
-async function updateCreateModal(body: any, client: any): Promise<void> {
-  const view = body.view;
+// ── Dynamic Modal Updates ─────────────────────────
+// When split_type changes, update the modal to show the right fields
+app.action("split_type_input", async ({ ack, body, client }) => {
+  await ack();
+
+  const view = (body as any).view;
   const values = view.state.values;
   const splitType =
     values.split_type?.split_type_input?.selected_option?.value || "equal";
-  const participantIds =
-    values.participants?.participants_input?.selected_users || [];
-
-  // Fetch display names for selected participants
-  const participantNames: Record<string, string> = {};
-  if (splitType === "custom" && participantIds.length > 0) {
-    for (const userId of participantIds) {
-      try {
-        const info = await client.users.info({ user: userId });
-        participantNames[userId] =
-          info.user?.real_name || info.user?.name || userId;
-      } catch {
-        participantNames[userId] = userId;
-      }
-    }
-  }
 
   await client.views.update({
     view_id: view.id,
     hash: view.hash,
     view: {
-      ...buildCreateBillModal({
-        splitType,
-        participantIds,
-        participantNames,
-      }),
+      ...buildCreateBillModal({ splitType: splitType as "equal" | "item" }),
       private_metadata: view.private_metadata,
     },
   });
-}
-
-app.action("split_type_input", async ({ ack, body, client }) => {
-  await ack();
-  await updateCreateModal(body, client);
 });
 
-app.action("participants_input", async ({ ack, body, client }) => {
+// Acknowledge participants_input changes (no modal update needed now)
+app.action("participants_input", async ({ ack }) => {
   await ack();
-  const view = (body as any).view;
-  const values = view?.state?.values;
-  const splitType =
-    values?.split_type?.split_type_input?.selected_option?.value;
-  // Only update modal if custom split is active (to avoid unnecessary updates)
-  if (splitType === "custom") {
-    await updateCreateModal(body, client);
-  }
 });
 
 // ── Modal Submission Handler ─────────────────────
 app.view("create_bill_modal", async ({ ack, view, client, body }) => {
   const values = view.state.values;
   const billName = values.bill_name.bill_name_input.value!;
-  const totalAmountStr = values.total_amount.total_amount_input.value!;
   const splitType = values.split_type.split_type_input.selected_option!
-    .value as "equal" | "custom";
+    .value as "equal" | "item";
   const participantIds =
     values.participants.participants_input.selected_users!;
-
-  const totalAmount = parseFloat(totalAmountStr);
-
-  if (isNaN(totalAmount) || totalAmount <= 0) {
-    await ack({
-      response_action: "errors",
-      errors: { total_amount: "Please enter a valid positive number" },
-    });
-    return;
-  }
 
   if (participantIds.length === 0) {
     await ack({
@@ -185,88 +154,149 @@ app.view("create_bill_modal", async ({ ack, view, client, body }) => {
     return;
   }
 
-  let participantData: { userId: string; amount: number }[];
+  if (splitType === "equal") {
+    // ── Equal split flow ──
+    const totalAmountStr = values.total_amount?.total_amount_input?.value;
 
-  if (splitType === "custom") {
-    // Read custom amounts from per-participant input fields
-    const customAmounts: number[] = [];
-    const errors: Record<string, string> = {};
-
-    for (const userId of participantIds) {
-      const blockId = `custom_amount_${userId}`;
-      const amountStr = values[blockId]?.custom_amount_input?.value;
-      if (!amountStr) {
-        errors[blockId] = "Please enter an amount";
-        continue;
-      }
-      const amount = parseFloat(amountStr);
-      if (isNaN(amount) || amount <= 0) {
-        errors[blockId] = "Please enter a valid positive number";
-        continue;
-      }
-      customAmounts.push(amount);
-    }
-
-    if (Object.keys(errors).length > 0) {
-      await ack({ response_action: "errors", errors });
-      return;
-    }
-
-    if (!validateCustomSplit(customAmounts, totalAmount)) {
-      // Find the first custom amount block to show the error
-      const firstBlockId = `custom_amount_${participantIds[0]}`;
+    if (!totalAmountStr) {
       await ack({
         response_action: "errors",
-        errors: {
-          [firstBlockId]: `Custom amounts must add up to ${totalAmount}`,
-        },
+        errors: { total_amount: "Please enter a total amount" },
       });
       return;
     }
 
-    participantData = participantIds.map(
-      (userId: string, i: number) => ({
-        userId,
-        amount: customAmounts[i],
-      })
-    );
-  } else {
+    const totalAmount = parseFloat(totalAmountStr);
+    if (isNaN(totalAmount) || totalAmount <= 0) {
+      await ack({
+        response_action: "errors",
+        errors: { total_amount: "Please enter a valid positive number" },
+      });
+      return;
+    }
+
+    await ack();
+
+    const metadata = JSON.parse(view.private_metadata);
+    const channelId = metadata.channel_id;
+    const creatorId = body.user.id;
+
+    const bill = createBill({
+      name: billName,
+      totalAmount,
+      splitType: "equal",
+      creatorId,
+      channelId,
+    });
+
     const amounts = splitEqual(totalAmount, participantIds.length);
-    participantData = participantIds.map(
+    const participantData = participantIds.map(
       (userId: string, i: number) => ({
         userId,
         amount: amounts[i],
       })
     );
-  }
 
-  await ack();
+    addParticipantsBulk(bill.id, participantData);
 
-  const metadata = JSON.parse(view.private_metadata);
-  const channelId = metadata.channel_id;
-  const creatorId = body.user.id;
+    const participants = getParticipantsByBill(bill.id);
+    const freshBill = getBillById(bill.id)!;
 
-  const bill = createBill({
-    name: billName,
-    totalAmount,
-    splitType,
-    creatorId,
-    channelId,
-  });
+    const result = await client.chat.postMessage({
+      channel: channelId,
+      blocks: buildBillCard(freshBill, participants),
+      text: `New bill: ${billName} - ${totalAmount}`,
+    });
 
-  addParticipantsBulk(bill.id, participantData);
+    if (result.ts) {
+      updateBillMessageTs(bill.id, result.ts);
+    }
+  } else {
+    // ── Item-based split flow ──
+    const itemsText = values.items?.items_input?.value;
 
-  const participants = getParticipantsByBill(bill.id);
-  const freshBill = getBillById(bill.id)!;
+    if (!itemsText) {
+      await ack({
+        response_action: "errors",
+        errors: { items: "Please enter at least one item" },
+      });
+      return;
+    }
 
-  const result = await client.chat.postMessage({
-    channel: channelId,
-    blocks: buildBillCard(freshBill, participants),
-    text: `New bill: ${billName} - ${totalAmount}`,
-  });
+    const parsedItems = parseItemsInput(itemsText);
+    if (parsedItems.length === 0) {
+      await ack({
+        response_action: "errors",
+        errors: {
+          items:
+            'Could not parse any items. Use format: "Item Name 123" (one per line)',
+        },
+      });
+      return;
+    }
 
-  if (result.ts) {
-    updateBillMessageTs(bill.id, result.ts);
+    const totalAmount = parsedItems.reduce((sum, item) => sum + item.amount, 0);
+
+    await ack();
+
+    const metadata = JSON.parse(view.private_metadata);
+    const channelId = metadata.channel_id;
+    const creatorId = body.user.id;
+
+    // Create bill in "pending" status
+    const bill = createBill({
+      name: billName,
+      totalAmount,
+      splitType: "item",
+      creatorId,
+      channelId,
+    });
+
+    // Add bill items
+    const billItems = addBillItemsBulk(bill.id, parsedItems);
+
+    // Add participants with amount=0 (will be calculated after item selection)
+    const participantData = participantIds.map((userId: string) => ({
+      userId,
+      amount: 0,
+    }));
+    addParticipantsBulk(bill.id, participantData);
+
+    const participants = getParticipantsByBill(bill.id);
+    const freshBill = getBillById(bill.id)!;
+
+    // Post bill card in channel (pending state)
+    const result = await client.chat.postMessage({
+      channel: channelId,
+      blocks: buildBillCard(freshBill, participants, billItems),
+      text: `New bill: ${billName} - ${totalAmount} (waiting for item selections)`,
+    });
+
+    if (result.ts) {
+      updateBillMessageTs(bill.id, result.ts);
+    }
+
+    // DM each participant with item selection checklist
+    for (const userId of participantIds) {
+      try {
+        await client.chat.postMessage({
+          channel: userId,
+          blocks: buildItemSelectDM(
+            billName,
+            creatorId,
+            bill.id,
+            billItems,
+            freshBill.currency
+          ),
+          text: `Select your items for "${billName}"`,
+        });
+      } catch (err) {
+        console.error(
+          `Failed to send item selection DM to ${userId}:`,
+          err
+        );
+      }
+    }
   }
 });
 
@@ -276,6 +306,8 @@ registerConfirmPaymentAction(app);
 registerRemindAllAction(app);
 registerCancelBillAction(app);
 registerViewDetailsAction(app);
+registerSelectItemsAction(app);
+registerCompleteCalcAction(app);
 
 // ── Scheduler ─────────────────────────────────────
 startReminderScheduler(app);

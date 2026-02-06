@@ -1,6 +1,8 @@
 import type { App } from "@slack/bolt";
 import { getBillById, updateBillStatus } from "../models/bill";
 import { getParticipantsByBill } from "../models/participant";
+import { getItemsByBill } from "../models/billItem";
+import { getItemBreakdownsByParticipant } from "../models/itemSelection";
 import { buildBillCard } from "../views/billCard";
 
 export function registerCancelBillAction(app: App): void {
@@ -11,7 +13,7 @@ export function registerCancelBillAction(app: App): void {
     const userId = body.user.id;
     const bill = getBillById(billId);
 
-    if (!bill || bill.status !== "active") {
+    if (!bill || (bill.status !== "active" && bill.status !== "pending")) {
       await client.chat.postEphemeral({
         channel: body.channel?.id || "",
         user: userId,
@@ -36,12 +38,16 @@ export function registerCancelBillAction(app: App): void {
     // Update the bill card
     const updatedBill = getBillById(billId)!;
     const participants = getParticipantsByBill(billId);
+    const items = getItemsByBill(billId);
+    const breakdowns = updatedBill.split_type === "item"
+      ? getItemBreakdownsByParticipant(billId)
+      : undefined;
 
     if (updatedBill.message_ts) {
       await client.chat.update({
         channel: updatedBill.channel_id,
         ts: updatedBill.message_ts,
-        blocks: buildBillCard(updatedBill, participants),
+        blocks: buildBillCard(updatedBill, participants, items, breakdowns),
         text: `Bill cancelled: ${updatedBill.name}`,
       });
     }

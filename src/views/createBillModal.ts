@@ -2,13 +2,13 @@ import { types } from "@slack/bolt";
 type View = types.View;
 type KnownBlock = types.KnownBlock;
 
-export interface CustomSplitOptions {
-  splitType: "equal" | "custom";
-  participantIds: string[];
-  participantNames: Record<string, string>; // userId -> display name
+export interface ModalOptions {
+  splitType: "equal" | "item";
 }
 
-export function buildCreateBillModal(options?: CustomSplitOptions): View {
+export function buildCreateBillModal(options?: ModalOptions): View {
+  const splitType = options?.splitType || "equal";
+
   const blocks: KnownBlock[] = [
     {
       type: "input",
@@ -28,6 +28,40 @@ export function buildCreateBillModal(options?: CustomSplitOptions): View {
     },
     {
       type: "input",
+      block_id: "split_type",
+      label: {
+        type: "plain_text",
+        text: "Split Type",
+      },
+      element: {
+        type: "static_select",
+        action_id: "split_type_input",
+        initial_option: {
+          text: {
+            type: "plain_text",
+            text: splitType === "item" ? "Item-based" : "Split Equally",
+          },
+          value: splitType,
+        },
+        options: [
+          {
+            text: { type: "plain_text", text: "Split Equally" },
+            value: "equal",
+          },
+          {
+            text: { type: "plain_text", text: "Item-based" },
+            value: "item",
+          },
+        ],
+      },
+      dispatch_action: true,
+    },
+  ];
+
+  if (splitType === "equal") {
+    // Equal split: show total amount field
+    blocks.push({
+      type: "input",
       block_id: "total_amount",
       label: {
         type: "plain_text",
@@ -41,101 +75,48 @@ export function buildCreateBillModal(options?: CustomSplitOptions): View {
           text: "e.g., 1320",
         },
       },
-    },
-    {
+    });
+  } else {
+    // Item-based split: show items input
+    blocks.push({
       type: "input",
-      block_id: "split_type",
+      block_id: "items",
       label: {
         type: "plain_text",
-        text: "Split Type",
+        text: "Items (one per line: name amount)",
       },
       element: {
-        type: "static_select",
-        action_id: "split_type_input",
-        initial_option: {
-          text: {
-            type: "plain_text",
-            text: options?.splitType === "custom" ? "Custom Amounts" : "Split Equally",
-          },
-          value: options?.splitType === "custom" ? "custom" : "equal",
-        },
-        options: [
-          {
-            text: { type: "plain_text", text: "Split Equally" },
-            value: "equal",
-          },
-          {
-            text: { type: "plain_text", text: "Custom Amounts" },
-            value: "custom",
-          },
-        ],
-      },
-      dispatch_action: true,
-    },
-    {
-      type: "input",
-      block_id: "participants",
-      label: {
-        type: "plain_text",
-        text: "Participants",
-      },
-      element: {
-        type: "multi_users_select",
-        action_id: "participants_input",
-        ...(options?.participantIds?.length
-          ? { initial_users: options.participantIds }
-          : {}),
+        type: "plain_text_input",
+        action_id: "items_input",
+        multiline: true,
         placeholder: {
           type: "plain_text",
-          text: "Select people to split with",
+          text: "Salmon Sushi 350\nRamen 280\nGyoza 340\nGreen Tea x4 350",
         },
       },
-      dispatch_action: true,
-    },
-  ];
-
-  // Add per-participant amount inputs when custom split is selected
-  if (
-    options?.splitType === "custom" &&
-    options.participantIds.length > 0
-  ) {
-    blocks.push({ type: "divider" });
-    blocks.push({
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: "*Enter the amount each person owes:*",
-      },
-    });
-
-    for (const userId of options.participantIds) {
-      const displayName = options.participantNames[userId] || userId;
-      blocks.push({
-        type: "input",
-        block_id: `custom_amount_${userId}`,
-        label: {
-          type: "plain_text",
-          text: displayName,
-        },
-        element: {
-          type: "plain_text_input",
-          action_id: "custom_amount_input",
-          placeholder: {
-            type: "plain_text",
-            text: "e.g., 500",
-          },
-        },
-      });
-    }
-  } else if (options?.splitType === "custom") {
-    blocks.push({
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: "_Select participants above to enter custom amounts._",
+      hint: {
+        type: "plain_text",
+        text: "Enter each item on its own line. The last number on each line is the cost.",
       },
     });
   }
+
+  blocks.push({
+    type: "input",
+    block_id: "participants",
+    label: {
+      type: "plain_text",
+      text: "Participants",
+    },
+    element: {
+      type: "multi_users_select",
+      action_id: "participants_input",
+      placeholder: {
+        type: "plain_text",
+        text: "Select people to split with",
+      },
+    },
+  });
 
   return {
     type: "modal",
@@ -154,4 +135,33 @@ export function buildCreateBillModal(options?: CustomSplitOptions): View {
     },
     blocks,
   };
+}
+
+/**
+ * Parse items text input into structured items.
+ * Format: "Item Name 123" or "Item Name 123.45" — last number on the line is the amount.
+ */
+export function parseItemsInput(
+  text: string
+): { name: string; amount: number }[] {
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  const items: { name: string; amount: number }[] = [];
+
+  for (const line of lines) {
+    // Match the last number (int or decimal) on the line
+    const match = line.match(/^(.+?)\s+([\d,]+(?:\.\d+)?)\s*$/);
+    if (match) {
+      const name = match[1].trim();
+      const amount = parseFloat(match[2].replace(/,/g, ""));
+      if (name && !isNaN(amount) && amount > 0) {
+        items.push({ name, amount });
+      }
+    }
+  }
+
+  return items;
 }

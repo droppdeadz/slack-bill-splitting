@@ -18,22 +18,44 @@ export function initializeDatabase(): void {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS bill_items (
+      id TEXT PRIMARY KEY,
+      bill_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      amount REAL NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (bill_id) REFERENCES bills(id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS participants (
       id TEXT PRIMARY KEY,
       bill_id TEXT NOT NULL,
       user_id TEXT NOT NULL,
-      amount REAL NOT NULL,
+      amount REAL NOT NULL DEFAULT 0,
+      has_selected INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'unpaid',
       paid_at DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (bill_id) REFERENCES bills(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS item_selections (
+      id TEXT PRIMARY KEY,
+      bill_item_id TEXT NOT NULL,
+      participant_id TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (bill_item_id) REFERENCES bill_items(id) ON DELETE CASCADE,
+      FOREIGN KEY (participant_id) REFERENCES participants(id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_bills_channel ON bills(channel_id);
     CREATE INDEX IF NOT EXISTS idx_bills_creator ON bills(creator_id);
     CREATE INDEX IF NOT EXISTS idx_bills_status ON bills(status);
+    CREATE INDEX IF NOT EXISTS idx_bill_items_bill ON bill_items(bill_id);
     CREATE INDEX IF NOT EXISTS idx_participants_bill ON participants(bill_id);
     CREATE INDEX IF NOT EXISTS idx_participants_user ON participants(user_id);
+    CREATE INDEX IF NOT EXISTS idx_item_selections_item ON item_selections(bill_item_id);
+    CREATE INDEX IF NOT EXISTS idx_item_selections_participant ON item_selections(participant_id);
   `);
 
   console.log("[DB] Database initialized successfully");

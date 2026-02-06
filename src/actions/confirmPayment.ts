@@ -6,6 +6,8 @@ import {
   areAllParticipantsPaid,
   getParticipantById,
 } from "../models/participant";
+import { getItemsByBill } from "../models/billItem";
+import { getItemBreakdownsByParticipant } from "../models/itemSelection";
 import { buildBillCard } from "../views/billCard";
 
 export function registerConfirmPaymentAction(app: App): void {
@@ -30,12 +32,16 @@ export function registerConfirmPaymentAction(app: App): void {
     // Update the original bill card in the channel
     const updatedBill = getBillById(billId)!;
     const participants = getParticipantsByBill(billId);
+    const items = getItemsByBill(billId);
+    const breakdowns = updatedBill.split_type === "item"
+      ? getItemBreakdownsByParticipant(billId)
+      : undefined;
 
     if (updatedBill.message_ts) {
       await client.chat.update({
         channel: updatedBill.channel_id,
         ts: updatedBill.message_ts,
-        blocks: buildBillCard(updatedBill, participants),
+        blocks: buildBillCard(updatedBill, participants, items, breakdowns),
         text: `Bill updated: ${updatedBill.name}`,
       });
     }

@@ -6,6 +6,7 @@ export interface Participant {
   bill_id: string;
   user_id: string;
   amount: number;
+  has_selected: number; // 0 or 1 (SQLite boolean)
   status: "unpaid" | "pending" | "paid";
   paid_at: string | null;
   created_at: string;
@@ -120,4 +121,32 @@ export function areAllParticipantsPaid(billId: string): boolean {
     )
     .get(billId) as { count: number };
   return result.count === 0;
+}
+
+export function markParticipantSelected(participantId: string): void {
+  const db = getDb();
+  db.prepare("UPDATE participants SET has_selected = 1 WHERE id = ?").run(
+    participantId
+  );
+}
+
+export function haveAllParticipantsSelected(billId: string): boolean {
+  const db = getDb();
+  const result = db
+    .prepare(
+      "SELECT COUNT(*) as count FROM participants WHERE bill_id = ? AND has_selected = 0"
+    )
+    .get(billId) as { count: number };
+  return result.count === 0;
+}
+
+export function updateParticipantAmount(
+  participantId: string,
+  amount: number
+): void {
+  const db = getDb();
+  db.prepare("UPDATE participants SET amount = ? WHERE id = ?").run(
+    amount,
+    participantId
+  );
 }

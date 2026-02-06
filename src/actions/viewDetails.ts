@@ -1,6 +1,8 @@
 import type { App } from "@slack/bolt";
 import { getBillById } from "../models/bill";
 import { getParticipantsByBill } from "../models/participant";
+import { getItemsByBill } from "../models/billItem";
+import { getItemBreakdownsByParticipant } from "../models/itemSelection";
 import { buildBillCard } from "../views/billCard";
 
 export function registerViewDetailsAction(app: App): void {
@@ -21,12 +23,16 @@ export function registerViewDetailsAction(app: App): void {
     }
 
     const participants = getParticipantsByBill(billId);
+    const items = getItemsByBill(billId);
+    const breakdowns = bill.split_type === "item"
+      ? getItemBreakdownsByParticipant(billId)
+      : undefined;
 
     // Show full bill card as ephemeral to the user
     await client.chat.postEphemeral({
       channel: body.channel?.id || "",
       user: userId,
-      blocks: buildBillCard(bill, participants),
+      blocks: buildBillCard(bill, participants, items, breakdowns),
       text: `Bill details: ${bill.name}`,
     });
   });

@@ -2,20 +2,137 @@ import { types } from "@slack/bolt";
 type KnownBlock = types.KnownBlock;
 import type { Bill } from "../models/bill";
 import type { Participant } from "../models/participant";
+import type { BillItem } from "../models/billItem";
 import { formatCurrency, progressBar } from "../utils/formatCurrency";
+
+export interface ItemBreakdown {
+  name: string;
+  amount: number;
+}
 
 export function buildBillCard(
   bill: Bill,
-  participants: Participant[]
+  participants: Participant[],
+  items?: BillItem[],
+  itemBreakdowns?: Map<string, ItemBreakdown[]>
+): KnownBlock[] {
+  if (bill.status === "pending" && bill.split_type === "item") {
+    return buildPendingItemCard(bill, participants, items || []);
+  }
+  return buildActiveCard(bill, participants, itemBreakdowns);
+}
+
+function buildPendingItemCard(
+  bill: Bill,
+  participants: Participant[],
+  items: BillItem[]
+): KnownBlock[] {
+  const selectedCount = participants.filter((p) => p.has_selected).length;
+  const totalCount = participants.length;
+
+  const itemLines = items
+    .map(
+      (item) =>
+        `    ${item.name}    ${formatCurrency(item.amount, bill.currency)}`
+    )
+    .join("\n");
+
+  const participantLines = participants
+    .map((p) => {
+      const icon = p.has_selected
+        ? ":white_check_mark:"
+        : ":hourglass_flowing_sand:";
+      return `${icon} <@${p.user_id}>`;
+    })
+    .join("  ");
+
+  const blocks: KnownBlock[] = [
+    {
+      type: "header",
+      text: {
+        type: "plain_text",
+        text: bill.name,
+      },
+    },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Total: ${formatCurrency(bill.total_amount, bill.currency)}*\nCreated by <@${bill.creator_id}> | ${items.length} items · ${totalCount} participants`,
+      },
+    },
+    { type: "divider" },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Items:*\n${itemLines}`,
+      },
+    },
+    { type: "divider" },
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Selection: ${selectedCount}/${totalCount} completed*\n\`${progressBar(selectedCount, totalCount)}\`\n${participantLines}`,
+      },
+    },
+  ];
+
+  // Show "Complete Calculation" if all have selected, otherwise just "Cancel Bill"
+  const actionElements: any[] = [];
+
+  if (selectedCount === totalCount && totalCount > 0) {
+    actionElements.push({
+      type: "button",
+      text: { type: "plain_text", text: "Complete Calculation" },
+      style: "primary",
+      action_id: "complete_calculation",
+      value: bill.id,
+    });
+  }
+
+  actionElements.push({
+    type: "button",
+    text: { type: "plain_text", text: "Cancel Bill" },
+    style: "danger",
+    action_id: "cancel_bill",
+    value: bill.id,
+  });
+
+  blocks.push({
+    type: "actions",
+    block_id: `bill_actions_${bill.id}`,
+    elements: actionElements,
+  });
+
+  blocks.push({
+    type: "context",
+    elements: [
+      {
+        type: "mrkdwn",
+        text: `Bill ID: \`${bill.id.slice(0, 8)}\` | Created: <!date^${Math.floor(new Date(bill.created_at).getTime() / 1000)}^{date_short} at {time}|${bill.created_at}> | _Waiting for item selections..._`,
+      },
+    ],
+  });
+
+  return blocks;
+}
+
+function buildActiveCard(
+  bill: Bill,
+  participants: Participant[],
+  itemBreakdowns?: Map<string, ItemBreakdown[]>
 ): KnownBlock[] {
   const paidAmount = participants
     .filter((p) => p.status === "paid")
     .reduce((sum, p) => sum + p.amount, 0);
 
-  const splitLabel =
-    bill.split_type === "equal"
-      ? `Split equally (${participants.length} people)`
-      : "Custom split";
+  const isItemBased = bill.split_type === "item";
+
+  const splitLabel = isItemBased
+    ? `Item-based split (${participants.length} people)`
+    : `Split equally (${participants.length} people)`;
 
   const statusEmoji: Record<string, string> = {
     paid: ":white_check_mark:",
@@ -23,21 +140,12 @@ export function buildBillCard(
     unpaid: ":red_circle:",
   };
 
-  const participantLines = participants
-    .map((p) => {
-      const emoji = statusEmoji[p.status];
-      const statusText =
-        p.status.charAt(0).toUpperCase() + p.status.slice(1);
-      return `${emoji}  <@${p.user_id}>    ${formatCurrency(p.amount, bill.currency)}    _${statusText}_`;
-    })
-    .join("\n");
-
   const blocks: KnownBlock[] = [
     {
       type: "header",
       text: {
         type: "plain_text",
-        text: `${bill.name}`,
+        text: bill.name,
       },
     },
     {
@@ -48,22 +156,51 @@ export function buildBillCard(
       },
     },
     { type: "divider" },
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: participantLines,
-      },
-    },
-    { type: "divider" },
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: `*Collected:* ${formatCurrency(paidAmount, bill.currency)} / ${formatCurrency(bill.total_amount, bill.currency)}\n\`${progressBar(paidAmount, bill.total_amount)}\``,
-      },
-    },
   ];
+
+  // Build participant sections
+  for (const p of participants) {
+    const emoji = statusEmoji[p.status];
+    const statusText =
+      p.status.charAt(0).toUpperCase() + p.status.slice(1);
+    const isCreator = p.user_id === bill.creator_id;
+    const creatorBadge = isCreator ? " :crown:" : "";
+
+    // Header line: emoji  @user  crown    amount    status
+    let participantText = `${emoji}  <@${p.user_id}>${creatorBadge}    *${formatCurrency(p.amount, bill.currency)}*    _${statusText}_`;
+
+    // Add item breakdown for item-based bills
+    if (isItemBased && itemBreakdowns) {
+      const items = itemBreakdowns.get(p.id);
+      if (items && items.length > 0) {
+        const itemList = items
+          .map(
+            (item) => `${item.name} \`${formatCurrency(item.amount, bill.currency)}\``
+          )
+          .join("  ·  ");
+        participantText += `\n      ${itemList}`;
+      }
+    }
+
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: participantText,
+      },
+    });
+  }
+
+  blocks.push({ type: "divider" });
+
+  // Progress bar
+  blocks.push({
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: `*Collected:* ${formatCurrency(paidAmount, bill.currency)} / ${formatCurrency(bill.total_amount, bill.currency)}\n\`${progressBar(paidAmount, bill.total_amount)}\``,
+    },
+  });
 
   // Add action buttons only for active bills
   if (bill.status === "active") {
