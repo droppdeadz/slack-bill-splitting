@@ -1,16 +1,16 @@
-# Khunthong for Slack - Implementation Plan
+# Copter for Slack - Implementation Plan
 
 > Inspired by KBANK's Khunthong (ขุนทอง) - a group bill splitting & money collection bot for Slack.
 
 ## Overview
 
-Khunthong Slack Bot allows users to create bills, split expenses among group members, track payments, and send reminders - all within Slack channels and DMs.
+Copter Slack Bot allows users to create bills, split expenses among group members, track payments, and send reminders - all within Slack channels and DMs.
 
 ---
 
 ## Core Features
 
-### 1. Create a Bill (`/khunthong create`)
+### 1. Create a Bill (`/copter create`)
 - Creator specifies: **bill name**, **total amount**, and **participants** (mention @users)
 - Supports **equal split** or **custom amounts** per person
 - Posts an interactive bill card in the channel
@@ -30,14 +30,14 @@ Khunthong Slack Bot allows users to create bills, split expenses among group mem
 - Automatic reminders can be scheduled (e.g., daily at 9 AM for outstanding bills)
 - Participants get a DM with a summary of all their unpaid bills
 
-### 5. Bill Summary (`/khunthong list`)
+### 5. Bill Summary (`/copter list`)
 - Shows all active bills in the current channel
 - Filter by: `created by me`, `owed by me`, `all`
 
-### 6. My Outstanding Bills (`/khunthong me`)
+### 6. My Outstanding Bills (`/copter me`)
 - DM the user a summary of all bills they owe across all channels
 
-### 7. Bill History (`/khunthong history`)
+### 7. Bill History (`/copter history`)
 - View completed/cancelled bills
 
 ---
@@ -46,7 +46,7 @@ Khunthong Slack Bot allows users to create bills, split expenses among group mem
 
 ### Flow 1: Creating a Bill
 ```
-User types: /khunthong create
+User types: /copter create
   -> Modal opens with form:
      - Bill name (e.g., "Lunch at Sushi place")
      - Total amount (e.g., 1,320)
@@ -91,7 +91,7 @@ Creator clicks "Remind All" on bill card
 ## Project Structure
 
 ```
-khunthong/
+copter/
 ├── plan.md
 ├── package.json
 ├── tsconfig.json
@@ -106,10 +106,10 @@ khunthong/
 │   │   ├── bill.ts             # Bill CRUD operations
 │   │   └── participant.ts      # Participant CRUD operations
 │   ├── commands/
-│   │   ├── create.ts           # /khunthong create
-│   │   ├── list.ts             # /khunthong list
-│   │   ├── me.ts               # /khunthong me
-│   │   └── history.ts          # /khunthong history
+│   │   ├── create.ts           # /copter create
+│   │   ├── list.ts             # /copter list
+│   │   ├── me.ts               # /copter me
+│   │   └── history.ts          # /copter history
 │   ├── actions/
 │   │   ├── markPaid.ts         # "Mark as Paid" button handler
 │   │   ├── confirmPayment.ts   # Creator confirms payment
@@ -126,7 +126,7 @@ khunthong/
 │       ├── formatCurrency.ts   # Format amounts (e.g., ฿1,320)
 │       └── splitCalculator.ts  # Calculate equal/custom splits
 └── data/
-    └── khunthong.db            # SQLite database file
+    └── copter.db               # SQLite database file
 ```
 
 ---
@@ -171,14 +171,14 @@ khunthong/
 - `users:read` - Get user display names
 
 ### Slash Command
-- `/khunthong` - Main command with subcommands (create, list, me, history)
+- `/copter` - Main command with subcommands (create, list, me, history)
 
 ### Interactivity
 - Enable **Interactivity & Shortcuts**
 - Request URL: `https://<your-domain>/slack/events`
 
 ### Event Subscriptions (optional, for future)
-- `app_mention` - Allow `@khunthong` mentions as alternative to slash commands
+- `app_mention` - Allow `@copter` mentions as alternative to slash commands
 
 ---
 
@@ -186,32 +186,45 @@ khunthong/
 
 ### Phase 1: Foundation (MVP) — COMPLETED
 - [x] Project setup (TypeScript, Bolt, SQLite)
-- [x] `/khunthong create` command with modal
+- [x] `/copter create` command with modal
 - [x] Bill card with Block Kit (posted to channel)
 - [x] Equal split calculation
 - [x] `Mark as Paid` button + creator confirmation flow
 - [x] Bill card real-time updates
 
 ### Phase 2: Management — COMPLETED
-- [x] `/khunthong list` - View active bills in channel
-- [x] `/khunthong me` - View my outstanding bills (ephemeral in channel)
-- [x] `/khunthong history` - View past bills
+- [x] `/copter list` - View active bills in channel
+- [x] `/copter me` - View my outstanding bills (ephemeral in channel)
+- [x] `/copter history` - View past bills
 - [x] `Cancel Bill` functionality (creator only)
 
-> **Note:** `/khunthong list` currently shows all active bills. Filter by `created by me` / `owed by me` / `all` is not yet implemented. `/khunthong me` shows as an ephemeral message in the channel, not a true DM.
+> **Note:** Remaining gaps for list filters and `/copter me` DM are tracked in Phase 3 below.
 
 ### Phase 3: Reminders & Polish — PARTIAL
 - [x] `Remind All` button - manual reminders via DM
 - [x] Automatic daily reminders (node-cron)
-- [ ] Custom split amounts (non-equal) — *Modal has the dropdown option but no custom amount input fields; always uses equal split logic*
+- [ ] Custom split amounts (non-equal) — *Modal has the dropdown option but no custom amount input fields; always uses equal split logic. Original Khunthong supports "หารไม่เท่า" (unequal split) where each person pays for what they consumed.*
 - [x] Bill summary when all participants have paid (auto-completes bill)
+- [ ] `/copter list` filters — *Filter by `created by me` / `owed by me` / `all` (currently shows all active bills without filtering)*
+- [ ] `/copter me` as true DM — *Currently shows as ephemeral in-channel message; original Khunthong shows personal debt summary privately*
 
-### Phase 4: Enhancements (Future) — NOT STARTED
-- [ ] Multi-currency support — *Partially scaffolded: DB stores currency, `formatCurrency` supports 5 currencies, but users cannot select currency in the modal (defaults to env config)*
-- [ ] Bill templates (recurring splits)
-- [ ] Expense analytics / monthly summary
-- [ ] Integration with payment services (PromptPay QR, etc.)
-- [ ] Slack Home Tab dashboard
+### Phase 4: Recurring & Multi-bill — NOT STARTED
+> Inspired by Khunthong's recurring monthly bills (หารบิลแบบรายเดือน) and multi-bill trip settlement features.
+- [ ] Recurring/monthly bills — *For shared subscriptions (Netflix, Spotify, YouTube Premium), rent, utilities. Config: day/time, frequency, duration, custom amounts per person. Original Khunthong carries unpaid balances forward to next period.*
+- [ ] Multi-bill trip settlement — *Aggregate multiple bills from a trip/outing and calculate net settlement amounts (who owes whom), reducing N transactions to minimal transfers*
+- [ ] Multi-currency support — *Partially scaffolded: DB stores currency, `formatCurrency` supports 5 currencies, but users cannot select currency in the modal (defaults to env config). Original Khunthong provides exchange rate info via `#ค่าเงิน`.*
+
+### Phase 5: Gamification & Social — NOT STARTED
+> Inspired by Khunthong's medal system and social features that drive engagement and prompt payments.
+- [ ] Payment speed medals (gold/silver/bronze) — *Original Khunthong awards medals based on how quickly participants pay, creating social incentive and gamification*
+- [ ] Payment streaks / stats — *Track payment behavior over time (e.g., "always pays within 1 hour")*
+- [ ] Social wallet (group savings pool) — *Original Khunthong's "เก็บเงินกลุ่ม" feature where everyone contributes toward a shared goal (e.g., group vacation fund)*
+
+### Phase 6: Platform & Integration — NOT STARTED
+- [ ] Slack Home Tab dashboard — *Personal overview: active bills, outstanding debts, payment history at a glance*
+- [ ] Expense analytics / monthly summary — *Spending breakdown by channel, category, or time period*
+- [ ] Integration with payment services (PromptPay QR, etc.) — *Original Khunthong integrates with K PLUS and verifies e-Slip QR codes from any Thai bank*
+- [ ] `@copter` mention support — *Allow `@copter create` as alternative to slash commands (event subscription already scaffolded in app config)*
 
 ---
 
@@ -244,7 +257,7 @@ SLACK_BOT_TOKEN=xoxb-...
 SLACK_SIGNING_SECRET=...
 SLACK_APP_TOKEN=xapp-...    # For Socket Mode (dev)
 PORT=3000
-DATABASE_PATH=./data/khunthong.db
+DATABASE_PATH=./data/copter.db
 DEFAULT_CURRENCY=THB
 REMINDER_CRON=0 9 * * *    # Daily at 9 AM
 ```
@@ -262,7 +275,7 @@ cp .env.example .env
 
 # 3. Create Slack App at https://api.slack.com/apps
 #    - Enable Socket Mode for local dev
-#    - Add slash command: /khunthong
+#    - Add slash command: /copter
 #    - Enable Interactivity
 #    - Add required bot scopes
 #    - Install to workspace
@@ -271,7 +284,7 @@ cp .env.example .env
 pnpm dev
 
 # 5. Test in Slack
-#    Type: /khunthong create
+#    Type: /copter create
 ```
 
 ---
@@ -281,5 +294,5 @@ pnpm dev
 1. **SQLite for MVP** - Zero setup, single file DB. Can migrate to PostgreSQL for production.
 2. **Socket Mode for dev** - No need for ngrok/public URL during development.
 3. **Creator confirms payments** - Since this is not connected to real banking, the bill creator acts as the "source of truth" for payment verification.
-4. **Channel-scoped bills** - Bills are tied to channels for context, but users can see all their bills via `/khunthong me`.
-5. **Block Kit for rich UI** - Slack's Block Kit provides interactive buttons, modals, and rich formatting similar to the original Khunthong UI.
+4. **Channel-scoped bills** - Bills are tied to channels for context, but users can see all their bills via `/copter me`.
+5. **Block Kit for rich UI** - Slack's Block Kit provides interactive buttons, modals, and rich formatting similar to the original KBANK Khunthong UI.
