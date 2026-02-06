@@ -6,39 +6,21 @@ A Slack bot focused on bill splitting and payment tracking. Create bills, split 
 
 ## Features
 
-- `/copter create` — Open a form to create a new bill with participants and split amounts
+- `/copter create` — Open a form to create a new bill (equal split or item-based split)
 - `/copter list` — View all active bills in the current channel
 - `/copter me` — See your outstanding bills across all channels
 - `/copter history` — Browse completed and cancelled bills
 
-### Bill Card
+### How It Works
 
-Each bill is posted as an interactive card in the channel:
+**Equal split** — Enter a total amount and participants. Everyone pays the same. Simple.
 
-```
-┌──────────────────────────────────────┐
-│  Lunch at Sushi Place       ฿1,320  │
-│  Created by @Sea_Talay              │
-│  Split equally (4 people)           │
-│─────────────────────────────────────│
-│  @Danit          ฿330        Paid   │
-│  @Grace          ฿330      Unpaid   │
-│  @Kong           ฿330      Unpaid   │
-│  @Nut            ฿330      Unpaid   │
-│─────────────────────────────────────│
-│  Collected: ฿330 / ฿1,320          │
-│  ██████░░░░░░░░░░░░░░  25%         │
-│─────────────────────────────────────│
-│  [Mark as Paid] [Remind All] [···]  │
-└──────────────────────────────────────┘
-```
+**Item-based split** — Enter individual items with costs and select participants:
+1. Bot **DMs each participant** to select which items they owe for
+2. Once everyone has selected, the **creator finalizes** the calculation
+3. Per-person amounts are computed and **payment tracking** begins
 
-### Payment Flow
-
-1. A participant clicks **Mark as Paid** on the bill card
-2. The bill creator receives a DM to **confirm** or **reject** the payment
-3. Once confirmed, the bill card updates in real-time
-4. When all participants have paid, the bill auto-completes
+Both flows end with: participants click **Mark as Paid**, creator confirms, bill auto-completes.
 
 ### Reminders
 
@@ -133,7 +115,9 @@ src/
 │   └── connection.ts       # DB connection
 ├── models/
 │   ├── bill.ts             # Bill CRUD operations
-│   └── participant.ts      # Participant CRUD operations
+│   ├── billItem.ts         # Bill item CRUD operations
+│   ├── participant.ts      # Participant CRUD operations
+│   └── itemSelection.ts    # Item selection CRUD operations
 ├── commands/
 │   ├── create.ts           # /copter create
 │   ├── list.ts             # /copter list
@@ -142,18 +126,21 @@ src/
 ├── actions/
 │   ├── markPaid.ts         # "Mark as Paid" button handler
 │   ├── confirmPayment.ts   # Creator confirms/rejects payment
+│   ├── selectItems.ts      # Participant selects items via DM
+│   ├── completeCalc.ts     # Creator finalizes bill calculation
 │   ├── remindAll.ts        # "Remind All" button handler
 │   ├── cancelBill.ts       # "Cancel Bill" button handler
 │   └── viewDetails.ts      # "View Details" button handler
 ├── views/
-│   ├── createBillModal.ts  # Modal form for creating bill
-│   ├── billCard.ts         # Bill card Block Kit message
+│   ├── createBillModal.ts  # Modal form (items + participants)
+│   ├── billCard.ts         # Bill card (pending/active states)
+│   ├── itemSelectMessage.ts # DM item selection for participants
 │   └── reminderMessage.ts  # DM reminder message
 ├── scheduler/
 │   └── reminders.ts        # Cron job for auto-reminders
 └── utils/
     ├── formatCurrency.ts   # Format amounts (e.g., ฿1,320)
-    └── splitCalculator.ts  # Calculate equal/custom splits
+    └── splitCalculator.ts  # Calculate equal splits & per-person amounts from item selections
 ```
 
 ## Scripts
@@ -169,9 +156,11 @@ src/
 
 See [plan.md](plan.md) for the full implementation plan and roadmap.
 
-**Completed:** Bill creation, equal & custom splits, payment confirmation flow, bill management commands, manual & automatic reminders, list filters, DM for outstanding bills.
+**Completed:** Equal split, payment confirmation flow, bill management commands, manual & automatic reminders, list filters, DM for outstanding bills.
 
-**Coming next:** Bill image recognition (OCR to auto-fill bills from receipt photos), payment integration (PromptPay QR).
+**In progress:** Item-based split (enter items + costs, participants self-select items, creator finalizes calculation).
+
+**Coming next:** Bill image recognition (OCR to auto-fill items from receipt photos), payment integration (PromptPay QR).
 
 ## License
 

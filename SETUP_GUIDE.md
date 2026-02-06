@@ -124,10 +124,12 @@ You should see:
 ## How It Works (For Non-Developers)
 
 ### Creating a Bill
-Type `/copter create` in any channel. A form pops up where you enter the bill name, total amount, and select who should split it. You can choose **Split Equally** (everyone pays the same) or **Custom Amounts** (enter how much each person owes). The bot posts a bill card showing everyone's share.
+Type `/copter create` in any channel. A form pops up where you choose a split type:
+- **Equal** — Enter a total amount and select participants. Everyone pays the same and payment tracking starts immediately.
+- **Item-based** — Enter individual items with their costs and select participants. The bot DMs each participant to select which items they owe for. Once everyone has selected, the creator finalizes the calculation and payment tracking begins.
 
 ### Paying a Bill
-When you've paid your share, click the **"Mark as Paid"** button on the bill card. The bill creator gets a DM asking them to confirm your payment.
+Once a bill is in payment tracking, click the **"Mark as Paid"** button on the bill card. The bill creator gets a DM asking them to confirm your payment.
 
 ### Getting Reminders
 The bill creator can click **"Remind All"** to send DM reminders to everyone who hasn't paid yet. The bot also sends automatic daily reminders at 9 AM.
