@@ -147,7 +147,7 @@ Creator clicks "Remind All" on bill card
 
 ```
 copter/
-├── plan.md
+├── plan/index.md
 ├── package.json
 ├── tsconfig.json
 ├── .env.example

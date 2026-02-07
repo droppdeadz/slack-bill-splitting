@@ -160,7 +160,7 @@ src/
 
 ## Roadmap
 
-See [plan.md](plan.md) for the full implementation plan and roadmap.
+See [plan/index.md](plan/index.md) for the full implementation plan and roadmap.
 
 **Completed:** Equal split, item-based split (enter items + costs, participants self-select items via DM, creator finalizes calculation), payment confirmation flow with optional payment slip upload, bill management commands, manual & automatic reminders, list filters, DM for outstanding bills, full bill status lifecycle (pending/active/completed/cancelled), bill owner auto-included and auto-paid.
 
