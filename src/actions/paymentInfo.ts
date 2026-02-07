@@ -24,7 +24,7 @@ export function registerPaymentInfoAction(app: App): void {
       const channelId = body.channel?.id || "";
       const bill = getBillById(billId);
 
-      if (!bill || bill.status !== "active") {
+      if (bill?.status !== "active") {
         await client.chat.postEphemeral({
           channel: channelId,
           user: userId,
@@ -131,7 +131,7 @@ export function registerPaymentInfoAction(app: App): void {
       const channelId = body.channel?.id || "";
       const bill = getBillById(billId);
 
-      if (!bill || bill.status !== "active") {
+      if (bill?.status !== "active") {
         await client.chat.postEphemeral({
           channel: channelId,
           user: userId,

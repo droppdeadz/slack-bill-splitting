@@ -97,23 +97,23 @@ async function downloadWithRedirects(
   maxRedirects = 5
 ): Promise<Buffer> {
   let currentUrl = url;
+  let useAuth = true;
 
   for (let i = 0; i < maxRedirects; i++) {
-    const res = await fetch(currentUrl, {
-      headers: { Authorization: `Bearer ${token}` },
-      redirect: "manual",
-    });
+    const headers: Record<string, string> = {};
+    if (useAuth) {
+      headers.Authorization = `Bearer ${token}`;
+    }
 
-    // Follow redirect — the signed redirect URL may work without auth
+    const res = await fetch(currentUrl, { headers, redirect: "manual" });
+
+    // Follow redirect — update URL and loop again
     if (res.status >= 300 && res.status < 400) {
       const location = res.headers.get("location");
       if (!location) throw new Error("Redirect without Location header");
-      // Redirect targets (e.g. S3 signed URLs) don't need the Bearer token
-      const nextRes = await fetch(location);
-      if (!nextRes.ok) {
-        throw new Error(`Failed to download image after redirect: ${nextRes.status}`);
-      }
-      return Buffer.from(await nextRes.arrayBuffer());
+      currentUrl = location;
+      useAuth = false; // Redirect targets (e.g. S3 signed URLs) don't need auth
+      continue;
     }
 
     if (!res.ok) {
@@ -152,8 +152,8 @@ async function runOcr(imageBuffer: Buffer): Promise<OcrResult> {
  * punctuation that appears inside Thai text (parentheses, comma, slash, etc.).
  */
 function cleanThaiSpacing(text: string): string {
-  return text.replace(
-    /(?<=[\u0E00-\u0E7F(),.\/:])\s+(?=[\u0E00-\u0E7F(),.\/:])/g,
+  return text.replaceAll(
+    /(?<=[\p{Script=Thai}(),./:])\s+(?=[\p{Script=Thai}(),./:])/gu,
     ""
   );
 }

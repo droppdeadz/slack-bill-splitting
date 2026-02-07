@@ -4,6 +4,12 @@ type KnownBlock = types.KnownBlock;
 
 import type { PaymentMethod } from "../models/paymentMethod";
 
+function promptpayTypeLabel(type: string): string {
+  if (type === "phone") return "Phone Number";
+  if (type === "national_id") return "National ID";
+  return "e-Wallet ID";
+}
+
 const THAI_BANKS = [
   "KBank",
   "SCB",
@@ -60,12 +66,7 @@ export function buildPaymentModal(existing?: PaymentMethod): View {
               initial_option: {
                 text: {
                   type: "plain_text",
-                  text:
-                    existing.promptpay_type === "phone"
-                      ? "Phone Number"
-                      : existing.promptpay_type === "national_id"
-                        ? "National ID"
-                        : "e-Wallet ID",
+                  text: promptpayTypeLabel(existing.promptpay_type),
                 },
                 value: existing.promptpay_type,
               },

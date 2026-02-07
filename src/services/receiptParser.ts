@@ -11,7 +11,7 @@ const TOTAL_KEYWORDS =
 
 // Lines that are clearly not a store name
 const NOT_STORE_NAME =
-  /^(\+?\d[\d\s\-]{6,}|TAX\s*ID|เลขประจำตัว|วันที่|\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|.*\d{10,})/i;
+  /^(\+?\d[\d\s\-]{6,}|TAX\s*ID|เลขประจำตัว|วันที่|\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4}|.*\d{10,})/i;
 
 // Pattern: name followed by a price at end of line
 const ITEM_LINE =
@@ -45,7 +45,7 @@ function detectStoreName(lines: string[]): string | null {
     // Skip lines that are just numbers / prices
     if (/^[\d,.\s฿$]+$/.test(line)) continue;
     // Must have at least 2 non-whitespace chars
-    if (line.replace(/\s/g, "").length < 2) continue;
+    if (line.replaceAll(/\s/g, "").length < 2) continue;
     return line;
   }
   return null;
@@ -54,10 +54,10 @@ function detectStoreName(lines: string[]): string | null {
 function detectTotal(lines: string[]): number | null {
   // Walk backwards — the last total-like line is usually the grand total
   for (let i = lines.length - 1; i >= 0; i--) {
-    const match = lines[i].match(TOTAL_LINE);
+    const match = TOTAL_LINE.exec(lines[i]);
     if (match) {
-      const val = parseFloat(match[1].replace(/,/g, ""));
-      if (!isNaN(val) && val > 0) return val;
+      const val = Number.parseFloat(match[1].replaceAll(",", ""));
+      if (!Number.isNaN(val) && val > 0) return val;
     }
   }
   return null;
@@ -71,13 +71,13 @@ function extractItems(lines: string[]): { name: string; amount: number }[] {
     // Skip total / tax / service charge lines
     if (TOTAL_KEYWORDS.test(line)) continue;
 
-    const match = line.match(ITEM_LINE);
+    const match = ITEM_LINE.exec(line);
     if (!match) continue;
 
     const name = match[1].trim();
-    const amount = parseFloat(match[2].replace(/,/g, ""));
+    const amount = Number.parseFloat(match[2].replaceAll(",", ""));
 
-    if (!name || isNaN(amount) || amount <= 0) continue;
+    if (!name || Number.isNaN(amount) || amount <= 0) continue;
 
     // Deduplicate by "name|amount"
     const key = `${name.toLowerCase()}|${amount}`;

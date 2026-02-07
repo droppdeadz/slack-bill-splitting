@@ -23,7 +23,7 @@ export function registerCompleteCalcAction(app: App): void {
       const userId = body.user.id;
       const bill = getBillById(billId);
 
-      if (!bill || bill.status !== "pending") {
+      if (bill?.status !== "pending") {
         await client.chat.postEphemeral({
           channel: body.channel?.id || "",
           user: userId,

@@ -24,40 +24,23 @@ export function registerPaymentHandlers(app: App): void {
     const bankAccountName =
       values.bank_account_name?.bank_account_name_input?.value?.trim() || null;
 
-    // Validate: if promptpay_type is set, promptpay_id must be set (and vice versa)
-    if ((promptpayType && !promptpayId) || (!promptpayType && promptpayId)) {
-      await ack({
-        response_action: "errors",
-        errors: {
-          ...(promptpayType && !promptpayId
-            ? { promptpay_id: "Please enter your PromptPay ID" }
-            : {}),
-          ...(!promptpayType && promptpayId
-            ? { promptpay_type: "Please select a PromptPay type" }
-            : {}),
-        },
-      });
-      return;
+    // Validate paired fields
+    const errors: Record<string, string> = {};
+    if (promptpayType && !promptpayId) {
+      errors.promptpay_id = "Please enter your PromptPay ID";
+    }
+    if (!promptpayType && promptpayId) {
+      errors.promptpay_type = "Please select a PromptPay type";
+    }
+    if (bankName && !bankAccountNumber) {
+      errors.bank_account_number = "Please enter your account number";
+    }
+    if (!bankName && bankAccountNumber) {
+      errors.bank_name = "Please select a bank";
     }
 
-    // Validate: if bank_name is set, account_number must be set (and vice versa)
-    if (
-      (bankName && !bankAccountNumber) ||
-      (!bankName && bankAccountNumber)
-    ) {
-      await ack({
-        response_action: "errors",
-        errors: {
-          ...(bankName && !bankAccountNumber
-            ? {
-                bank_account_number: "Please enter your account number",
-              }
-            : {}),
-          ...(!bankName && bankAccountNumber
-            ? { bank_name: "Please select a bank" }
-            : {}),
-        },
-      });
+    if (Object.keys(errors).length > 0) {
+      await ack({ response_action: "errors", errors });
       return;
     }
 

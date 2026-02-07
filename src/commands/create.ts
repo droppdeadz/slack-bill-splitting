@@ -15,7 +15,7 @@ import {
   updateParticipantStatus,
   areAllParticipantsPaid,
 } from "../models/participant";
-import { addBillItemsBulk, getItemsByBill } from "../models/billItem";
+import { addBillItemsBulk } from "../models/billItem";
 import { buildBillCard } from "../views/billCard";
 import { getPaymentMethodByUser } from "../models/paymentMethod";
 import { buildItemSelectDM } from "../views/itemSelectMessage";
@@ -294,8 +294,8 @@ async function handleEqualSplit(
     return;
   }
 
-  const totalAmount = parseFloat(totalAmountStr);
-  if (isNaN(totalAmount) || totalAmount <= 0) {
+  const totalAmount = Number.parseFloat(totalAmountStr);
+  if (Number.isNaN(totalAmount) || totalAmount <= 0) {
     await ack({
       response_action: "errors",
       errors: { total_amount: "Please enter a valid positive number" },

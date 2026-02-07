@@ -131,8 +131,9 @@ startReminderScheduler(app);
 startFileCleanupScheduler(app);
 
 // ── Start ─────────────────────────────────────────
-(async () => {
+async function start(): Promise<void> {
   await app.start(config.port);
   console.log(`⚡ Slack Bill Splitting bot is running on port ${config.port}`);
   console.log(`   Commands: /${cmd} [create|list|me|history|payment|help]`);
-})();
+}
+start();

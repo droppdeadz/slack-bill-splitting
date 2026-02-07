@@ -26,7 +26,7 @@ export function registerSelectItemsAction(app: App): void {
       const userId = body.user.id;
       const bill = getBillById(billId);
 
-      if (!bill || bill.status !== "pending") {
+      if (bill?.status !== "pending") {
         await client.chat.postMessage({
           channel: userId,
           text: "This bill is no longer accepting selections.",

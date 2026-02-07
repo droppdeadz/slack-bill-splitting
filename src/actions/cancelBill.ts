@@ -17,7 +17,7 @@ export function registerCancelBillAction(app: App): void {
     const isFromModal = !!body.view;
     const channelId = body.channel?.id || bill?.channel_id || "";
 
-    if (!bill || (bill.status !== "active" && bill.status !== "pending")) {
+    if (bill?.status !== "active" && bill?.status !== "pending") {
       if (isFromModal) {
         await client.views.update({
           view_id: body.view?.id ?? "",

@@ -11,7 +11,7 @@ export function registerManageBillAction(app: App): void {
     const userId = body.user.id;
     const bill = getBillById(billId);
 
-    if (!bill || (bill.status !== "active" && bill.status !== "pending")) {
+    if (bill?.status !== "active" && bill?.status !== "pending") {
       await client.chat.postEphemeral({
         channel: body.channel?.id || "",
         user: userId,
@@ -46,8 +46,7 @@ export function registerManageBillAction(app: App): void {
           action_id: "remind_all",
           value: bill.id,
         },
-      });
-      modalBlocks.push({ type: "divider" });
+      }, { type: "divider" });
     }
 
     modalBlocks.push({

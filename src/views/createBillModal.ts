@@ -409,11 +409,11 @@ export function parseItemsInput(
 
   for (const line of lines) {
     // Match the last number (int or decimal) on the line
-    const match = line.match(/^(.+?)\s+([\d,]+(?:\.\d+)?)\s*$/);
+    const match = /^(.+?)\s+([\d,]+(?:\.\d+)?)\s*$/.exec(line);
     if (match) {
       const name = match[1].trim();
-      const amount = parseFloat(match[2].replace(/,/g, ""));
-      if (name && !isNaN(amount) && amount > 0) {
+      const amount = Number.parseFloat(match[2].replaceAll(",", ""));
+      if (name && !Number.isNaN(amount) && amount > 0) {
         items.push({ name, amount });
       }
     }

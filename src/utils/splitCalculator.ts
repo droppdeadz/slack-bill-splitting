@@ -9,7 +9,7 @@ export function splitEqual(
   const remainder =
     Math.round((totalAmount - base * numberOfPeople) * 100) / 100;
 
-  const amounts = Array(numberOfPeople).fill(base);
+  const amounts = new Array<number>(numberOfPeople).fill(base);
 
   // Distribute remainder cents to the first few people
   if (remainder > 0) {

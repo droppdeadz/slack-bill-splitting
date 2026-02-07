@@ -20,7 +20,7 @@ export function registerMarkPaidAction(app: App): void {
     const userId = body.user.id;
     const bill = getBillById(billId);
 
-    if (!bill || bill.status !== "active") {
+    if (bill?.status !== "active") {
       await client.chat.postEphemeral({
         channel: body.channel?.id || "",
         user: userId,
@@ -167,8 +167,9 @@ export function registerMarkPaidAction(app: App): void {
         user: userId,
         text: `:hourglass_flowing_sand: Payment notification sent to <@${bill.creator_id}> for confirmation.`,
       });
-    } catch (_err: unknown) {
+    } catch (err: unknown) {
       // Ephemeral may fail if the channel context is unavailable (e.g., modal opened from DM)
+      console.debug("Ephemeral notification skipped:", err);
     }
   });
 }

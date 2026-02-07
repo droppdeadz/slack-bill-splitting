@@ -107,9 +107,7 @@ function buildPendingItemCard(
     type: "actions",
     block_id: `bill_actions_${bill.id}`,
     elements: actionElements,
-  });
-
-  blocks.push({
+  }, {
     type: "context",
     elements: [
       {
@@ -214,10 +212,8 @@ function buildActiveCard(
     });
   }
 
-  blocks.push({ type: "divider" });
-
   // Progress bar
-  blocks.push({
+  blocks.push({ type: "divider" }, {
     type: "section",
     text: {
       type: "mrkdwn",
