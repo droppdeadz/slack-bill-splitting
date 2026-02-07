@@ -9,10 +9,7 @@ import {
   hasBankAccount,
 } from "../models/paymentMethod";
 import { generatePromptPayQr } from "../services/promptPayQr";
-import {
-  buildPromptPayQrBlocks,
-  buildBankInfoBlocks,
-} from "../views/paymentInfoMessage";
+import { buildBankInfoBlocks } from "../views/paymentInfoMessage";
 
 export function registerPaymentInfoAction(app: App): void {
   // "Pay via PromptPay" button handler
@@ -182,61 +179,11 @@ export function registerPaymentInfoAction(app: App): void {
           pm,
           participant.amount,
           bill.currency,
-          bill.name,
-          billId
+          bill.name
         ),
         text: `Payment info for ${bill.name}`,
       });
     }
   );
 
-  // "Copy Account No." button handler — opens a modal for easy copying
-  app.action(
-    "copy_bank_account",
-    async ({ ack, body, client, action }) => {
-      await ack();
-
-      const billId = (action as any).value;
-      const bill = getBillById(billId);
-      if (!bill) return;
-
-      const pm = getPaymentMethodByUser(bill.creator_id);
-      if (!pm?.bank_account_number) return;
-
-      await client.views.open({
-        trigger_id: (body as any).trigger_id,
-        view: {
-          type: "modal",
-          title: { type: "plain_text", text: "Bank Account Number" },
-          close: { type: "plain_text", text: "Done" },
-          blocks: [
-            {
-              type: "section",
-              text: {
-                type: "mrkdwn",
-                text: `*${pm.bank_name}*${pm.bank_account_name ? `\n${pm.bank_account_name}` : ""}`,
-              },
-            },
-            { type: "divider" },
-            {
-              type: "section",
-              text: {
-                type: "mrkdwn",
-                text: `\`\`\`${pm.bank_account_number}\`\`\``,
-              },
-            },
-            {
-              type: "context",
-              elements: [
-                {
-                  type: "mrkdwn",
-                  text: "Long-press or select the number above to copy it.",
-                },
-              ],
-            },
-          ],
-        },
-      });
-    }
-  );
 }
