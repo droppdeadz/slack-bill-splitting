@@ -212,7 +212,7 @@ copter/
 │       ├── formatCurrency.ts   # Format amounts (e.g., ฿1,320)
 │       └── splitCalculator.ts  # Calculate equal splits & per-person amounts from item selections
 └── data/
-    └── copter.db               # SQLite database file
+    └── bills.db                # SQLite database file
 ```
 
 ---
@@ -420,7 +420,7 @@ SLACK_BOT_TOKEN=xoxb-...
 SLACK_SIGNING_SECRET=...
 SLACK_APP_TOKEN=xapp-...    # For Socket Mode (dev)
 PORT=3000
-DATABASE_PATH=./data/copter.db
+DATABASE_PATH=./data/bills.db
 DEFAULT_CURRENCY=THB
 REMINDER_CRON=0 9 * * *    # Daily at 9 AM
 SLASH_COMMAND=slack-bill-splitting  # Must match command name in Slack app config
