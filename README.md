@@ -56,7 +56,7 @@ pnpm install
 
 ### 2. Create a Slack App
 
-See [SETUP_GUIDE.md](SETUP_GUIDE.md) for detailed step-by-step instructions on creating and configuring your Slack app.
+See [plan/SETUP_GUIDE.md](plan/SETUP_GUIDE.md) for detailed step-by-step instructions on creating and configuring your Slack app.
 
 Quick summary of what you'll need:
 - Create a new app at https://api.slack.com/apps
@@ -160,7 +160,7 @@ src/
 
 ## Roadmap
 
-See [plan/index.md](plan/index.md) for the full implementation plan and roadmap.
+See [plan/PLAN.md](plan/PLAN.md) for the full implementation plan and roadmap.
 
 **Completed:** Equal split, item-based split (enter items + costs, participants self-select items via DM, creator finalizes calculation), payment confirmation flow with optional payment slip upload, bill management commands, manual & automatic reminders, list filters, DM for outstanding bills, full bill status lifecycle (pending/active/completed/cancelled), bill owner auto-included and auto-paid.
 

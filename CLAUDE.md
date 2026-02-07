@@ -16,7 +16,7 @@ Copter - A Slack bill-splitting bot inspired by KBANK's Khunthong. Built with Ty
 
 **Always read these files first** to understand the project context and current progress:
 
-- **`plan/index.md`** — Implementation plan with phase checklists, feature descriptions, architecture, and project structure. This is the source of truth for what has been built, what is in progress, and what is planned next.
+- **`plan/PLAN.md`** — Implementation plan with phase checklists, feature descriptions, architecture, and project structure. This is the source of truth for what has been built, what is in progress, and what is planned next.
 - **`README.md`** — Project overview, features, and quick start guide.
 
 Do NOT begin working on any task until you have read and understood both files above.
@@ -27,6 +27,6 @@ Do NOT begin working on any task until you have read and understood both files a
 
 - **`plan/index.md`** — Update phase checklists, feature descriptions, and any architectural details that changed.
 - **`README.md`** — Update if commands, features, or setup steps changed.
-- **`SETUP_GUIDE.md`** — Update if scopes, commands, user-facing behavior, or setup steps changed.
+- **`plan/SETUP_GUIDE.md`** — Update if scopes, commands, user-facing behavior, or setup steps changed.
 
 Do not consider a task complete until all three documentation files are verified and updated as needed.
