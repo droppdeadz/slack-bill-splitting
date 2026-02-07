@@ -81,48 +81,29 @@ export function registerPaymentInfoAction(app: App): void {
           participant.amount
         );
 
-        // Upload QR image to Slack
+        // Open a DM with the user so we can upload the QR image there
+        const dm = await client.conversations.open({ users: userId });
+        const dmChannelId = (dm as any).channel?.id;
+        if (!dmChannelId) throw new Error("Could not open DM");
+
+        // Upload QR image to the DM channel
         const upload = await client.filesUploadV2({
-          channel_id: channelId,
+          channel_id: dmChannelId,
           file: qrBuffer,
           filename: `promptpay_${billId.slice(0, 8)}.png`,
           title: `PromptPay QR — ${bill.name}`,
+          initial_comment: [
+            `*Pay via PromptPay*`,
+            `*${bill.name}* — *${participant.amount.toLocaleString()} ${bill.currency}*`,
+            `Scan the QR code with your banking app, then click *Mark as Paid* on the bill card.`,
+          ].join("\n"),
         });
 
-        // Get the file ID from the upload response
-        const fileId = (upload as any).file?.id;
-
-        // Build blocks with QR info
-        const blocks = buildPromptPayQrBlocks(
-          participant.amount,
-          bill.currency,
-          bill.name
-        );
-
-        // Add the QR image block if upload succeeded
-        if (fileId) {
-          blocks.push({
-            type: "image",
-            slack_file: { id: fileId },
-            alt_text: "PromptPay QR Code",
-          } as any);
-        }
-
-        blocks.push({
-          type: "context",
-          elements: [
-            {
-              type: "mrkdwn",
-              text: "After paying, click *Mark as Paid* on the bill card.",
-            },
-          ],
-        });
-
+        // Let the user know in the original channel
         await client.chat.postEphemeral({
           channel: channelId,
           user: userId,
-          blocks,
-          text: `PromptPay QR for ${bill.name}`,
+          text: `PromptPay QR for *${bill.name}* has been sent to your DMs.`,
         });
       } catch (err) {
         console.error("Failed to generate PromptPay QR:", err);
@@ -201,9 +182,60 @@ export function registerPaymentInfoAction(app: App): void {
           pm,
           participant.amount,
           bill.currency,
-          bill.name
+          bill.name,
+          billId
         ),
         text: `Payment info for ${bill.name}`,
+      });
+    }
+  );
+
+  // "Copy Account No." button handler — opens a modal for easy copying
+  app.action(
+    "copy_bank_account",
+    async ({ ack, body, client, action }) => {
+      await ack();
+
+      const billId = (action as any).value;
+      const bill = getBillById(billId);
+      if (!bill) return;
+
+      const pm = getPaymentMethodByUser(bill.creator_id);
+      if (!pm?.bank_account_number) return;
+
+      await client.views.open({
+        trigger_id: (body as any).trigger_id,
+        view: {
+          type: "modal",
+          title: { type: "plain_text", text: "Bank Account Number" },
+          close: { type: "plain_text", text: "Done" },
+          blocks: [
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: `*${pm.bank_name}*${pm.bank_account_name ? `\n${pm.bank_account_name}` : ""}`,
+              },
+            },
+            { type: "divider" },
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: `\`\`\`${pm.bank_account_number}\`\`\``,
+              },
+            },
+            {
+              type: "context",
+              elements: [
+                {
+                  type: "mrkdwn",
+                  text: "Long-press or select the number above to copy it.",
+                },
+              ],
+            },
+          ],
+        },
       });
     }
   );

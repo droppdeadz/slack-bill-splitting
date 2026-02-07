@@ -28,11 +28,10 @@ export function buildBankInfoBlocks(
   pm: PaymentMethod,
   amount: number,
   currency: string,
-  billName: string
+  billName: string,
+  billId: string
 ): KnownBlock[] {
-  const maskedAccount = pm.bank_account_number
-    ? "••••" + pm.bank_account_number.slice(-4)
-    : "N/A";
+  const accountDisplay = pm.bank_account_number || "N/A";
 
   return [
     {
@@ -53,11 +52,17 @@ export function buildBankInfoBlocks(
         type: "mrkdwn",
         text: [
           `*Bank:* ${pm.bank_name}`,
-          `*Account:* \`${maskedAccount}\``,
+          `*Account:* \`${accountDisplay}\``,
           ...(pm.bank_account_name
             ? [`*Name:* ${pm.bank_account_name}`]
             : []),
         ].join("\n"),
+      },
+      accessory: {
+        type: "button",
+        text: { type: "plain_text", text: "Copy Account No." },
+        action_id: "copy_bank_account",
+        value: billId,
       },
     },
     {
