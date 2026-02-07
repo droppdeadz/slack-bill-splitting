@@ -1,6 +1,7 @@
 import { App } from "@slack/bolt";
 import { config } from "./config";
 import { initializeDatabase } from "./database/schema";
+import { runMigrations } from "./database/migrate";
 import { handleListCommand, type ListFilter } from "./commands/list";
 import { handleMeCommand } from "./commands/me";
 import { handleHistoryCommand } from "./commands/history";
@@ -36,6 +37,7 @@ const app = new App({
 
 // ── Database ──────────────────────────────────────
 initializeDatabase();
+runMigrations();
 
 // ── Slash Command Router ──────────────────────────
 // /copter [create|list|me|history|help]
