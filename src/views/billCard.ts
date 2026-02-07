@@ -19,7 +19,7 @@ export function buildBillCard(
   if (bill.status === "pending" && bill.split_type === "item") {
     return buildPendingItemCard(bill, participants, items || []);
   }
-  return buildActiveCard(bill, participants, itemBreakdowns);
+  return buildActiveCard(bill, participants, itemBreakdowns, items);
 }
 
 function buildPendingItemCard(
@@ -33,7 +33,7 @@ function buildPendingItemCard(
   const itemLines = items
     .map(
       (item) =>
-        `    ${item.name}    ${formatCurrency(item.amount, bill.currency)}`
+        `${item.name}    \`${formatCurrency(item.amount, bill.currency)}\``
     )
     .join("\n");
 
@@ -121,7 +121,8 @@ function buildPendingItemCard(
 function buildActiveCard(
   bill: Bill,
   participants: Participant[],
-  itemBreakdowns?: Map<string, ItemBreakdown[]>
+  itemBreakdowns?: Map<string, ItemBreakdown[]>,
+  items?: BillItem[]
 ): KnownBlock[] {
   const paidAmount = participants
     .filter((p) => p.status === "paid")
@@ -154,8 +155,26 @@ function buildActiveCard(
         text: `*Total: ${formatCurrency(bill.total_amount, bill.currency)}*\nCreated by <@${bill.creator_id}> | ${splitLabel}`,
       },
     },
-    { type: "divider" },
   ];
+
+  // Show items overview for item-based bills
+  if (isItemBased && items && items.length > 0) {
+    const itemList = items
+      .map(
+        (item) =>
+          `${item.name}    \`${formatCurrency(item.amount, bill.currency)}\``
+      )
+      .join("\n");
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Items:*\n${itemList}`,
+      },
+    });
+  }
+
+  blocks.push({ type: "divider" });
 
   // Build participant sections
   for (const p of participants) {
@@ -170,9 +189,9 @@ function buildActiveCard(
 
     // Add item breakdown for item-based bills
     if (isItemBased && itemBreakdowns) {
-      const items = itemBreakdowns.get(p.id);
-      if (items && items.length > 0) {
-        const itemList = items
+      const breakdown = itemBreakdowns.get(p.id);
+      if (breakdown && breakdown.length > 0) {
+        const itemList = breakdown
           .map(
             (item) => `${item.name} \`${formatCurrency(item.amount, bill.currency)}\``
           )
