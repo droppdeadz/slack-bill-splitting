@@ -10,4 +10,5 @@ export const config = {
   databasePath: process.env.DATABASE_PATH || "./data/copter.db",
   defaultCurrency: process.env.DEFAULT_CURRENCY || "THB",
   reminderCron: process.env.REMINDER_CRON || "0 9 * * *",
+  slashCommand: process.env.SLASH_COMMAND || "slack-bill-splitting",
 };

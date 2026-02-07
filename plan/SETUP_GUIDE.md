@@ -34,7 +34,7 @@
    - `chat:write.public` — Send messages to channels the bot isn't in
    - `commands` — Add slash commands
    - `files:read` — Read uploaded payment slips and receipt images for OCR
-   - `im:write` — Send direct messages (reminders & `/copter me`)
+   - `im:write` — Send direct messages (reminders & the `me` subcommand)
    - `users:read` — Read user display names
 
 ---
@@ -44,10 +44,11 @@
 1. In the left sidebar, click **"Slash Commands"**
 2. Click **"Create New Command"**
 3. Fill in:
-   - **Command:** `/copter`
+   - **Command:** Any name you like (e.g. `/copter`, `/split`, `/bill`)
    - **Short Description:** `Split bills and collect money from your team`
    - **Usage Hint:** `[create | list [all|mine|owed] | me | history | help]`
 4. Click **"Save"**
+5. **Important:** Set the `SLASH_COMMAND` env var to match the command name you chose (without the `/`). For example, if you created `/split`, set `SLASH_COMMAND=split`.
 
 ---
 
@@ -84,12 +85,14 @@
    ```bash
    cp .env.example .env
    ```
-2. Fill in your three tokens:
+2. Fill in your tokens and command name:
    ```
    SLACK_BOT_TOKEN=xoxb-your-token-here
    SLACK_SIGNING_SECRET=your-secret-here
    SLACK_APP_TOKEN=xapp-your-token-here
+   SLASH_COMMAND=slack-bill-splitting
    ```
+   > Set `SLASH_COMMAND` to match the slash command name you created in Step 4 (without the `/`).
 
 ---
 
@@ -115,8 +118,8 @@ You should see:
 ## Step 10: Test It!
 
 1. Go to any Slack channel
-2. Type `/copter help` — You should see the help message
-3. Type `/copter create` — A form should pop up
+2. Type `/<your-command> help` — You should see the help message
+3. Type `/<your-command> create` — A form should pop up
 4. Fill in a bill name, amount, and select participants
 5. The bill card should appear in the channel
 
@@ -125,7 +128,7 @@ You should see:
 ## How It Works (For Non-Developers)
 
 ### Creating a Bill
-Type `/copter create` in any channel. A form pops up where you first choose how to create the bill:
+Type your slash command (e.g. `/copter create`) in any channel. A form pops up where you first choose how to create the bill:
 
 - **Enter Manually** (default) — Fill in bill details yourself. All fields are required: bill name, split type, amount/items, and participants.
   - *Equal split* — Enter a total amount and select participants. Everyone pays the same and payment tracking starts immediately.
@@ -141,11 +144,11 @@ Once a bill is in payment tracking, click the **"Mark as Paid"** button on the b
 The bill creator can click **"Manage Bill"** → **"Remind All"** to send DM reminders to everyone who hasn't paid yet. Only the bill creator sees the manage options. The bot also sends automatic daily reminders at 9 AM.
 
 ### Checking Your Bills
-- `/copter me` — Get a DM with all bills you still owe
-- `/copter list` — See all active bills in the current channel
-- `/copter list mine` — See only bills you created
-- `/copter list owed` — See only bills you owe on
-- `/copter history` — See past completed/cancelled bills
+- `/<command> me` — Get a DM with all bills you still owe
+- `/<command> list` — See all active bills in the current channel
+- `/<command> list mine` — See only bills you created
+- `/<command> list owed` — See only bills you owe on
+- `/<command> history` — See past completed/cancelled bills
 
 ---
 
@@ -153,7 +156,7 @@ The bill creator can click **"Manage Bill"** → **"Remind All"** to send DM rem
 
 | Problem | Solution |
 |---------|----------|
-| `/copter` doesn't work | Make sure the bot is running (`pnpm dev`) |
+| Slash command doesn't work | Make sure the bot is running (`pnpm dev`) and `SLASH_COMMAND` matches your Slack app config |
 | "not_in_channel" error | Invite the bot to the channel: `/invite @Copter` |
 | Modal doesn't open | Check that Interactivity is enabled in Slack App settings |
 | No DM reminders | Check that the bot has `im:write` scope |

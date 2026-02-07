@@ -277,7 +277,7 @@ copter/
 - `files:read` - Read uploaded payment slips
 
 ### Slash Command
-- `/copter` - Main command with subcommands (create, list, me, history)
+- Configurable via `SLASH_COMMAND` env var (default: `slack-bill-splitting`) — must match the command created at https://api.slack.com/apps
 
 ### Interactivity
 - Enable **Interactivity & Shortcuts**
@@ -423,6 +423,7 @@ PORT=3000
 DATABASE_PATH=./data/copter.db
 DEFAULT_CURRENCY=THB
 REMINDER_CRON=0 9 * * *    # Daily at 9 AM
+SLASH_COMMAND=slack-bill-splitting  # Must match command name in Slack app config
 ```
 
 ---

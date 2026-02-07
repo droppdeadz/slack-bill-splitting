@@ -5,6 +5,7 @@ import {
 } from "../models/bill";
 import { getParticipantsByBill } from "../models/participant";
 import { formatCurrency } from "../utils/formatCurrency";
+import { config } from "../config";
 
 export type ListFilter = "all" | "mine" | "owed";
 
@@ -58,7 +59,7 @@ export async function handleListCommand(
   });
 
   const filterHint =
-    "_Filters: `/copter list all` · `/copter list mine` · `/copter list owed`_";
+    `_Filters: \`/${config.slashCommand} list all\` · \`/${config.slashCommand} list mine\` · \`/${config.slashCommand} list owed\`_`;
 
   await client.chat.postEphemeral({
     channel: channelId,

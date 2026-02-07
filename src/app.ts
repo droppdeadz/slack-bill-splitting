@@ -30,8 +30,8 @@ initializeDatabase();
 runMigrations();
 
 // ── Slash Command Router ──────────────────────────
-// /copter [create|list|me|history|help]
-app.command("/copter", async ({ command, ack, client, body }) => {
+const cmd = config.slashCommand;
+app.command(`/${cmd}`, async ({ command, ack, client, body }) => {
   const subcommand = command.text.trim().split(/\s+/)[0] || "help";
 
   switch (subcommand) {
@@ -89,16 +89,16 @@ app.command("/copter", async ({ command, ack, client, body }) => {
               text: [
                 "*Available Commands:*",
                 "",
-                "`/copter create` — Create a new bill and split it",
-                "`/copter list [all|mine|owed]` — View active bills in this channel",
-                "`/copter me` — View your outstanding bills (sent as DM)",
-                "`/copter history` — View completed/cancelled bills",
-                "`/copter help` — Show this help message",
+                `\`/${cmd} create\` — Create a new bill and split it`,
+                `\`/${cmd} list [all|mine|owed]\` — View active bills in this channel`,
+                `\`/${cmd} me\` — View your outstanding bills (sent as DM)`,
+                `\`/${cmd} history\` — View completed/cancelled bills`,
+                `\`/${cmd} help\` — Show this help message`,
               ].join("\n"),
             },
           },
         ],
-        text: "Copter commands: create, list, me, history, help",
+        text: `${cmd} commands: create, list, me, history, help`,
       });
       break;
   }
@@ -122,5 +122,5 @@ startReminderScheduler(app);
 (async () => {
   await app.start(config.port);
   console.log(`⚡ Copter bot is running on port ${config.port}`);
-  console.log("   Commands: /copter [create|list|me|history|help]");
+  console.log(`   Commands: /${cmd} [create|list|me|history|help]`);
 })();

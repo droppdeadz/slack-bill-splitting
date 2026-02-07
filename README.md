@@ -6,10 +6,12 @@ A Slack bot focused on bill splitting and payment tracking. Create bills, split 
 
 ## Features
 
-- `/copter create` — Open a form to create a new bill. Choose between **Enter Manually** (type in bill details) or **Upload Receipt Image** (scan a receipt to auto-fill items via OCR). In manual mode all fields are required; in upload mode only the image is required and bill name/participants carry forward to the review modal.
-- `/copter list` — View all active bills in the current channel
-- `/copter me` — See your outstanding bills across all channels
-- `/copter history` — Browse completed and cancelled bills
+- `/<command> create` — Open a form to create a new bill. Choose between **Enter Manually** (type in bill details) or **Upload Receipt Image** (scan a receipt to auto-fill items via OCR). In manual mode all fields are required; in upload mode only the image is required and bill name/participants carry forward to the review modal.
+- `/<command> list` — View all active bills in the current channel
+- `/<command> me` — See your outstanding bills across all channels
+- `/<command> history` — Browse completed and cancelled bills
+
+> The slash command name defaults to `/copter` but is configurable via the `SLASH_COMMAND` environment variable. Set it to match whatever you configured at https://api.slack.com/apps.
 
 ### How It Works
 
@@ -63,7 +65,7 @@ Quick summary of what you'll need:
 - Create a new app at https://api.slack.com/apps
 - Enable **Socket Mode** and generate an app-level token (`xapp-...`)
 - Add bot scopes: `commands`, `chat:write`, `chat:write.public`, `im:write`, `users:read`, `files:read`
-- Create slash command: `/copter`
+- Create a slash command (e.g. `/copter` — or any name you prefer)
 - Enable **Interactivity**
 - Install the app to your workspace and copy the bot token (`xoxb-...`)
 
@@ -83,6 +85,7 @@ PORT=3000
 DATABASE_PATH=./data/copter.db
 DEFAULT_CURRENCY=THB
 REMINDER_CRON=0 9 * * *
+SLASH_COMMAND=slack-bill-splitting
 ```
 
 ### 4. Run the bot
@@ -105,7 +108,7 @@ You should see:
 
 ### 5. Test in Slack
 
-Type `/copter create` in any channel to create your first bill.
+Type your slash command (e.g. `/copter create`) in any channel to create your first bill.
 
 ## Project Structure
 
