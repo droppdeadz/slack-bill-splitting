@@ -6,7 +6,7 @@ A Slack bot focused on bill splitting and payment tracking. Create bills, split 
 
 ## Features
 
-- `/copter create` — Open a form to create a new bill (equal split or item-based split)
+- `/copter create` — Open a form to create a new bill (equal split or item-based split). Optionally upload a receipt image to auto-fill items via OCR.
 - `/copter list` — View all active bills in the current channel
 - `/copter me` — See your outstanding bills across all channels
 - `/copter history` — Browse completed and cancelled bills
@@ -38,6 +38,7 @@ Both flows end with: participants click **Mark as Paid**, optionally attach a pa
 | Language        | TypeScript                                                    |
 | Database        | SQLite via [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) |
 | Scheduler       | node-cron                                                     |
+| OCR             | [tesseract.js](https://github.com/naptha/tesseract.js) (local, no API key) |
 | Package Manager | pnpm                                                          |
 
 ## Getting Started
@@ -142,6 +143,9 @@ src/
 │   ├── itemSelectMessage.ts # DM item selection for participants
 │   ├── reminderMessage.ts  # DM reminder message
 │   └── resultModal.ts      # Shared result modal for manage bill actions
+├── services/
+│   ├── receiptOcr.ts       # tesseract.js OCR wrapper for receipt images
+│   └── receiptParser.ts    # Regex parser: raw OCR text → structured receipt data
 ├── scheduler/
 │   └── reminders.ts        # Cron job for auto-reminders
 └── utils/
@@ -162,9 +166,9 @@ src/
 
 See [plan/PLAN.md](plan/PLAN.md) for the full implementation plan and roadmap.
 
-**Completed:** Equal split, item-based split (enter items + costs, participants self-select items via DM, creator finalizes calculation), payment confirmation flow with optional payment slip upload, bill management commands, manual & automatic reminders, list filters, DM for outstanding bills, full bill status lifecycle (pending/active/completed/cancelled), bill owner auto-included and auto-paid.
+**Completed:** Equal split, item-based split (enter items + costs, participants self-select items via DM, creator finalizes calculation), payment confirmation flow with optional payment slip upload, bill management commands, manual & automatic reminders, list filters, DM for outstanding bills, full bill status lifecycle (pending/active/completed/cancelled), bill owner auto-included and auto-paid, receipt image scanning (OCR to auto-fill items from receipt photos).
 
-**Coming next:** Bill image recognition (OCR to auto-fill items from receipt photos), payment integration (PromptPay QR).
+**Coming next:** Payment integration (PromptPay QR).
 
 ## License
 

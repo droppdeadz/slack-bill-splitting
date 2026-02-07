@@ -139,6 +139,7 @@ Creator clicks "Remind All" on bill card
 | Language       | TypeScript                        |
 | Database       | SQLite (via better-sqlite3) for simplicity, easily swappable to PostgreSQL |
 | Scheduler      | node-cron (for automatic reminders) |
+| OCR            | tesseract.js (local receipt scanning, no API key needed) |
 | Package Manager| pnpm                              |
 
 ---
@@ -184,6 +185,9 @@ copter/
 │   │   ├── itemSelectMessage.ts # DM item selection checklist for participants
 │   │   ├── reminderMessage.ts  # DM reminder message
 │   │   └── resultModal.ts      # Shared result modal for manage bill actions
+│   ├── services/
+│   │   ├── receiptOcr.ts       # tesseract.js OCR wrapper for receipt images
+│   │   └── receiptParser.ts    # Regex parser: raw OCR text → structured receipt data
 │   ├── scheduler/
 │   │   └── reminders.ts        # Cron job for auto-reminders
 │   └── utils/
@@ -300,12 +304,12 @@ copter/
 - [x] Block "Mark as Paid" for bill owner — *If the bill owner clicks "Mark as Paid", they see a message that they don't need to pay*
 - [x] Auto-complete bill if creator is only participant — *Edge case: if no other participants, bill completes immediately*
 
-### Phase 4: Bill Image Recognition — NOT STARTED
+### Phase 4: Bill Image Recognition — COMPLETED
 > Automatically read bills from uploaded images and pre-fill the create bill form. Uses tesseract.js for free, local OCR — no API keys or external services needed.
-- [ ] Receipt/bill image upload in create modal — *Add optional `file_input` to the create bill modal*
-- [ ] OCR service — *New `receiptOcr.ts` using tesseract.js to extract raw text from receipt images (English + Thai)*
-- [ ] Receipt text parser — *New `receiptParser.ts` to parse raw OCR text into structured data (store name, items with amounts, total) using regex*
-- [ ] Auto-fill bill form from parsed data — *On submission with image: process → open new pre-filled review modal → user reviews/edits → submits into existing flow*
+- [x] Receipt/bill image upload in create modal — *Add optional `file_input` to the create bill modal*
+- [x] OCR service — *New `receiptOcr.ts` using tesseract.js to extract raw text from receipt images (English + Thai)*
+- [x] Receipt text parser — *New `receiptParser.ts` to parse raw OCR text into structured data (store name, items with amounts, total) using regex*
+- [x] Auto-fill bill form from parsed data — *On submission with image: process → open new pre-filled review modal → user reviews/edits → submits into existing flow*
 
 ### Phase 5: Payment Integration — NOT STARTED
 - [ ] Integration with payment services (PromptPay QR, etc.) — *Generate PromptPay QR codes for easy payment, and optionally verify payments via e-Slip QR*

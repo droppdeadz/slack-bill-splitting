@@ -7,3 +7,6 @@ data/*.db-wal
 .agents/
 .claude/
 .cursor/
+eng.traineddata
+tha.traineddata
+*.traineddata

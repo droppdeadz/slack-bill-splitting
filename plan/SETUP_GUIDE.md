@@ -33,7 +33,7 @@
    - `chat:write` — Send and update messages
    - `chat:write.public` — Send messages to channels the bot isn't in
    - `commands` — Add slash commands
-   - `files:read` — Read uploaded payment slips
+   - `files:read` — Read uploaded payment slips and receipt images for OCR
    - `im:write` — Send direct messages (reminders & `/copter me`)
    - `users:read` — Read user display names
 

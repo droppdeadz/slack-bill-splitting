@@ -11,7 +11,15 @@ import { addBillItemsBulk, getItemsByBill } from "../models/billItem";
 import { buildBillCard } from "../views/billCard";
 import { buildItemSelectDM } from "../views/itemSelectMessage";
 import { splitEqual } from "../utils/splitCalculator";
-import { buildCreateBillModal, parseItemsInput } from "../views/createBillModal";
+import {
+  buildCreateBillModal,
+  buildProcessingModal,
+  buildOcrErrorModal,
+  buildScopeErrorModal,
+  parseItemsInput,
+} from "../views/createBillModal";
+import { recognizeReceipt, MissingScopeError } from "../services/receiptOcr";
+import { parseReceiptText } from "../services/receiptParser";
 
 export function registerCreateHandlers(app: App): void {
   // Dynamic modal update: when split_type changes, rebuild the modal
@@ -38,9 +46,29 @@ export function registerCreateHandlers(app: App): void {
     await ack();
   });
 
+  // Acknowledge receipt image file input changes
+  app.action("receipt_image_input", async ({ ack }) => {
+    await ack();
+  });
+
   // Modal submission handler for creating a bill
   app.view("create_bill_modal", async ({ ack, view, client, body }) => {
     const values = view.state.values;
+
+    // Check if a receipt image was uploaded
+    const fileData =
+      values.receipt_image?.receipt_image_input;
+    const files = (fileData as any)?.files as
+      | { id: string }[]
+      | undefined;
+
+    if (files && files.length > 0) {
+      // Image uploaded — hand off to OCR flow
+      await handleReceiptUpload(ack, view, client, body, files[0].id);
+      return;
+    }
+
+    // No image — existing manual flow
     const billName = values.bill_name.bill_name_input.value!;
     const splitType = values.split_type.split_type_input.selected_option!
       .value as "equal" | "item";
@@ -61,6 +89,126 @@ export function registerCreateHandlers(app: App): void {
       await handleItemSplit(ack, view, client, body, billName, participantIds);
     }
   });
+
+  // "Create Manually" fallback from OCR error modal
+  app.view("ocr_retry_manual", async ({ ack, view }) => {
+    const metadata = JSON.parse(view.private_metadata);
+    await ack({
+      response_action: "update",
+      view: {
+        ...buildCreateBillModal(),
+        private_metadata: JSON.stringify({
+          channel_id: metadata.channel_id,
+        }),
+      },
+    });
+  });
+}
+
+/**
+ * Handle a submission that includes a receipt image:
+ * 1. Show "Processing..." modal
+ * 2. Run OCR + parse
+ * 3. Update modal with pre-filled review form (or error)
+ */
+async function handleReceiptUpload(
+  ack: any,
+  view: any,
+  client: any,
+  body: any,
+  fileId: string
+): Promise<void> {
+  const metadata = JSON.parse(view.private_metadata);
+  const channelId = metadata.channel_id;
+
+  // Show processing modal (keeps the modal alive while we work)
+  await ack({
+    response_action: "update",
+    view: {
+      ...buildProcessingModal(channelId),
+      private_metadata: view.private_metadata,
+    },
+  });
+
+  const viewId = view.id;
+
+  try {
+    // Run OCR
+    const ocrResult = await recognizeReceipt(fileId, client);
+    const parsed = parseReceiptText(ocrResult.text);
+
+    const hasItems = parsed.items.length > 0;
+    const hasTotal = parsed.total !== null && parsed.total > 0;
+
+    if (!hasItems && !hasTotal) {
+      // Nothing useful extracted — show error
+      await client.views.update({
+        view_id: viewId,
+        view: {
+          ...buildOcrErrorModal(channelId),
+          private_metadata: view.private_metadata,
+        },
+      });
+      return;
+    }
+
+    // Build the review modal with pre-filled data
+    const billName = parsed.storeName || "";
+
+    if (hasItems) {
+      // Item-based split with extracted items
+      const itemsText = parsed.items
+        .map((item) => `${item.name} ${item.amount}`)
+        .join("\n");
+
+      const reviewModal = buildCreateBillModal({
+        isReview: true,
+        splitType: "item",
+        billName,
+        itemsText,
+      });
+
+      await client.views.update({
+        view_id: viewId,
+        view: {
+          ...reviewModal,
+          private_metadata: view.private_metadata,
+        },
+      });
+    } else {
+      // Only total found — equal split
+      const reviewModal = buildCreateBillModal({
+        isReview: true,
+        splitType: "equal",
+        billName,
+        totalAmount: String(parsed.total),
+      });
+
+      await client.views.update({
+        view_id: viewId,
+        view: {
+          ...reviewModal,
+          private_metadata: view.private_metadata,
+        },
+      });
+    }
+  } catch (err) {
+    console.error("Receipt OCR failed:", err);
+
+    // Show specific error for missing scope vs generic OCR error
+    const errorModal =
+      err instanceof MissingScopeError
+        ? buildScopeErrorModal(channelId)
+        : buildOcrErrorModal(channelId);
+
+    await client.views.update({
+      view_id: viewId,
+      view: {
+        ...errorModal,
+        private_metadata: view.private_metadata,
+      },
+    });
+  }
 }
 
 async function handleEqualSplit(
