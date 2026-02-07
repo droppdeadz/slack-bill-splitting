@@ -5,6 +5,20 @@ import { getItemsByBill } from "../models/billItem";
 import { getItemBreakdownsByParticipant } from "../models/itemSelection";
 import { buildBillCard } from "../views/billCard";
 
+function buildResultModal(message: string) {
+  return {
+    type: "modal" as const,
+    title: { type: "plain_text" as const, text: "Manage Bill" },
+    close: { type: "plain_text" as const, text: "Close" },
+    blocks: [
+      {
+        type: "section",
+        text: { type: "mrkdwn", text: message },
+      },
+    ],
+  };
+}
+
 export function registerCancelBillAction(app: App): void {
   app.action("cancel_bill", async ({ ack, body, client, action }) => {
     await ack();
@@ -12,23 +26,39 @@ export function registerCancelBillAction(app: App): void {
     const billId = (action as any).value;
     const userId = body.user.id;
     const bill = getBillById(billId);
+    const isFromModal = !!(body as any).view;
+    const channelId = (body as any).channel?.id || bill?.channel_id || "";
 
     if (!bill || (bill.status !== "active" && bill.status !== "pending")) {
-      await client.chat.postEphemeral({
-        channel: body.channel?.id || "",
-        user: userId,
-        text: "This bill is no longer active.",
-      });
+      if (isFromModal) {
+        await client.views.update({
+          view_id: (body as any).view.id,
+          view: buildResultModal(":x: This bill is no longer active."),
+        });
+      } else {
+        await client.chat.postEphemeral({
+          channel: channelId,
+          user: userId,
+          text: "This bill is no longer active.",
+        });
+      }
       return;
     }
 
     // Only creator can cancel
     if (bill.creator_id !== userId) {
-      await client.chat.postEphemeral({
-        channel: body.channel?.id || "",
-        user: userId,
-        text: "Only the bill creator can cancel this bill.",
-      });
+      if (isFromModal) {
+        await client.views.update({
+          view_id: (body as any).view.id,
+          view: buildResultModal(":x: Only the bill creator can cancel this bill."),
+        });
+      } else {
+        await client.chat.postEphemeral({
+          channel: channelId,
+          user: userId,
+          text: "Only the bill creator can cancel this bill.",
+        });
+      }
       return;
     }
 
@@ -52,10 +82,18 @@ export function registerCancelBillAction(app: App): void {
       });
     }
 
-    await client.chat.postEphemeral({
-      channel: body.channel?.id || "",
-      user: userId,
-      text: `:no_entry_sign: Bill "${bill.name}" has been cancelled.`,
-    });
+    const resultText = `:no_entry_sign: Bill "${bill.name}" has been cancelled.`;
+    if (isFromModal) {
+      await client.views.update({
+        view_id: (body as any).view.id,
+        view: buildResultModal(resultText),
+      });
+    } else {
+      await client.chat.postEphemeral({
+        channel: channelId,
+        user: userId,
+        text: resultText,
+      });
+    }
   });
 }

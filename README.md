@@ -24,7 +24,7 @@ Both flows end with: participants click **Mark as Paid**, creator confirms, bill
 
 ### Reminders
 
-- **Manual:** Creator clicks **Remind All** to DM all unpaid participants
+- **Manual:** Creator clicks **Manage Bill** → **Remind All** to DM all unpaid participants
 - **Automatic:** Daily reminders at a configurable time (default: 9 AM)
 
 ## Tech Stack
@@ -128,8 +128,9 @@ src/
 │   ├── confirmPayment.ts   # Creator confirms/rejects payment
 │   ├── selectItems.ts      # Participant selects items via DM
 │   ├── completeCalc.ts     # Creator finalizes bill calculation
-│   ├── remindAll.ts        # "Remind All" button handler
-│   ├── cancelBill.ts       # "Cancel Bill" button handler
+│   ├── manageBill.ts       # "Manage Bill" button → creator-only modal
+│   ├── remindAll.ts        # "Remind All" action handler
+│   ├── cancelBill.ts       # "Cancel Bill" action handler
 │   └── viewDetails.ts      # "View Details" button handler
 ├── views/
 │   ├── createBillModal.ts  # Modal form (items + participants)

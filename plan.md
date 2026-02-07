@@ -32,8 +32,8 @@ Copter is a Slack bot focused on bill splitting and payment tracking. Create bil
 - **Equal split:** Goes directly to active payment tracking state
 - **Item-based — pending selection:** Shows items list, participant selection progress
 - **Item-based — active (payment tracking):** Shows each participant with their calculated amount and payment status
-- Buttons change based on state: `Cancel Bill` always available for creator
-- Payment phase buttons: `Mark as Paid`, `Remind All`, `View Details`
+- Buttons change based on state: `Manage Bill` opens a creator-only modal with `Remind All` and `Cancel Bill`
+- Payment phase buttons: `Mark as Paid`, `Manage Bill`
 
 ### 5. Mark as Paid
 - Participant clicks `Mark as Paid` on the bill card
@@ -167,8 +167,9 @@ copter/
 │   │   ├── confirmPayment.ts   # Creator confirms payment
 │   │   ├── selectItems.ts      # Participant selects items via DM
 │   │   ├── completeCalc.ts     # Creator finalizes bill calculation
-│   │   ├── remindAll.ts        # "Remind All" button handler
-│   │   ├── cancelBill.ts       # "Cancel Bill" button handler
+│   │   ├── manageBill.ts       # "Manage Bill" button → creator-only modal
+│   │   ├── remindAll.ts        # "Remind All" action handler (from modal)
+│   │   ├── cancelBill.ts       # "Cancel Bill" action handler (from modal)
 │   │   └── viewDetails.ts     # "View Details" button handler
 │   ├── views/
 │   │   ├── createBillModal.ts  # Modal form for creating bill (items + participants)
@@ -311,7 +312,7 @@ copter/
 │  Collected: ฿100 / ฿400            │
 │  ██████░░░░░░░░░░░░░░  25%         │
 │─────────────────────────────────────│
-│  [Mark as Paid] [Remind All] [···]  │
+│  [Mark as Paid] [Manage Bill]       │
 └──────────────────────────────────────┘
 ```
 
@@ -333,7 +334,7 @@ copter/
 │  ✓ @Danit  ✓ @Grace                │
 │  ⏳ @Kong   ⏳ @Nut                  │
 │─────────────────────────────────────│
-│  [Cancel Bill]                      │
+│  [Manage Bill]                      │
 └──────────────────────────────────────┘
 ```
 
@@ -366,7 +367,7 @@ copter/
 │  Collected: ฿455 / ฿1,320               │
 │  ████████░░░░░░░░░░░░  34%              │
 │──────────────────────────────────────────│
-│  [Mark as Paid] [Remind All] [Cancel]    │
+│  [Mark as Paid] [Manage Bill]            │
 └──────────────────────────────────────────┘
 ```
 

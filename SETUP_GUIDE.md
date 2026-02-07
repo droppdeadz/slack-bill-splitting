@@ -132,7 +132,7 @@ Type `/copter create` in any channel. A form pops up where you choose a split ty
 Once a bill is in payment tracking, click the **"Mark as Paid"** button on the bill card. The bill creator gets a DM asking them to confirm your payment.
 
 ### Getting Reminders
-The bill creator can click **"Remind All"** to send DM reminders to everyone who hasn't paid yet. The bot also sends automatic daily reminders at 9 AM.
+The bill creator can click **"Manage Bill"** → **"Remind All"** to send DM reminders to everyone who hasn't paid yet. Only the bill creator sees the manage options. The bot also sends automatic daily reminders at 9 AM.
 
 ### Checking Your Bills
 - `/copter me` — Get a DM with all bills you still owe

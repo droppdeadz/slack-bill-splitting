@@ -94,9 +94,8 @@ function buildPendingItemCard(
 
   actionElements.push({
     type: "button",
-    text: { type: "plain_text", text: "Cancel Bill" },
-    style: "danger",
-    action_id: "cancel_bill",
+    text: { type: "plain_text", text: "Manage Bill" },
+    action_id: "manage_bill",
     value: bill.id,
   });
 
@@ -217,15 +216,8 @@ function buildActiveCard(
         },
         {
           type: "button",
-          text: { type: "plain_text", text: "Remind All" },
-          action_id: "remind_all",
-          value: bill.id,
-        },
-        {
-          type: "button",
-          text: { type: "plain_text", text: "Cancel Bill" },
-          style: "danger",
-          action_id: "cancel_bill",
+          text: { type: "plain_text", text: "Manage Bill" },
+          action_id: "manage_bill",
           value: bill.id,
         },
       ],

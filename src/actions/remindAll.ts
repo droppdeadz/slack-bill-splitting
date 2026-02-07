@@ -3,6 +3,20 @@ import { getBillById } from "../models/bill";
 import { getUnpaidParticipantsByBill } from "../models/participant";
 import { buildReminderDM } from "../views/reminderMessage";
 
+function buildResultModal(message: string) {
+  return {
+    type: "modal" as const,
+    title: { type: "plain_text" as const, text: "Manage Bill" },
+    close: { type: "plain_text" as const, text: "Close" },
+    blocks: [
+      {
+        type: "section",
+        text: { type: "mrkdwn", text: message },
+      },
+    ],
+  };
+}
+
 export function registerRemindAllAction(app: App): void {
   app.action("remind_all", async ({ ack, body, client, action }) => {
     await ack();
@@ -10,34 +24,57 @@ export function registerRemindAllAction(app: App): void {
     const billId = (action as any).value;
     const userId = body.user.id;
     const bill = getBillById(billId);
+    const isFromModal = !!(body as any).view;
+    const channelId = (body as any).channel?.id || bill?.channel_id || "";
 
     if (!bill || bill.status !== "active") {
-      await client.chat.postEphemeral({
-        channel: body.channel?.id || "",
-        user: userId,
-        text: "This bill is no longer active.",
-      });
+      if (isFromModal) {
+        await client.views.update({
+          view_id: (body as any).view.id,
+          view: buildResultModal(":x: This bill is no longer active."),
+        });
+      } else {
+        await client.chat.postEphemeral({
+          channel: channelId,
+          user: userId,
+          text: "This bill is no longer active.",
+        });
+      }
       return;
     }
 
     // Only creator can send reminders
     if (bill.creator_id !== userId) {
-      await client.chat.postEphemeral({
-        channel: body.channel?.id || "",
-        user: userId,
-        text: "Only the bill creator can send reminders.",
-      });
+      if (isFromModal) {
+        await client.views.update({
+          view_id: (body as any).view.id,
+          view: buildResultModal(":x: Only the bill creator can send reminders."),
+        });
+      } else {
+        await client.chat.postEphemeral({
+          channel: channelId,
+          user: userId,
+          text: "Only the bill creator can send reminders.",
+        });
+      }
       return;
     }
 
     const unpaidParticipants = getUnpaidParticipantsByBill(billId);
 
     if (unpaidParticipants.length === 0) {
-      await client.chat.postEphemeral({
-        channel: body.channel?.id || "",
-        user: userId,
-        text: "Everyone has already paid!",
-      });
+      if (isFromModal) {
+        await client.views.update({
+          view_id: (body as any).view.id,
+          view: buildResultModal(":white_check_mark: Everyone has already paid!"),
+        });
+      } else {
+        await client.chat.postEphemeral({
+          channel: channelId,
+          user: userId,
+          text: "Everyone has already paid!",
+        });
+      }
       return;
     }
 
@@ -66,10 +103,18 @@ export function registerRemindAllAction(app: App): void {
       }
     }
 
-    await client.chat.postEphemeral({
-      channel: body.channel?.id || "",
-      user: userId,
-      text: `:bell: Reminders sent to ${sentCount} participant(s).`,
-    });
+    const resultText = `:bell: Reminders sent to ${sentCount} participant(s).`;
+    if (isFromModal) {
+      await client.views.update({
+        view_id: (body as any).view.id,
+        view: buildResultModal(resultText),
+      });
+    } else {
+      await client.chat.postEphemeral({
+        channel: channelId,
+        user: userId,
+        text: resultText,
+      });
+    }
   });
 }
