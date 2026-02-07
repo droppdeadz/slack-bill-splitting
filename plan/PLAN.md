@@ -301,10 +301,11 @@ copter/
 - [x] Auto-complete bill if creator is only participant — *Edge case: if no other participants, bill completes immediately*
 
 ### Phase 4: Bill Image Recognition — NOT STARTED
-> Automatically read bills from uploaded images and pre-fill the create bill form. Currently, the bill owner must enter all details manually.
-- [ ] Receipt/bill image upload in create modal — *Allow users to upload a photo of a receipt or bill*
-- [ ] OCR / image parsing — *Extract bill items, amounts, and total from the uploaded image*
-- [ ] Auto-fill bill form from parsed data — *Pre-populate bill name, total amount, and optionally line items from the parsed receipt*
+> Automatically read bills from uploaded images and pre-fill the create bill form. Uses tesseract.js for free, local OCR — no API keys or external services needed.
+- [ ] Receipt/bill image upload in create modal — *Add optional `file_input` to the create bill modal*
+- [ ] OCR service — *New `receiptOcr.ts` using tesseract.js to extract raw text from receipt images (English + Thai)*
+- [ ] Receipt text parser — *New `receiptParser.ts` to parse raw OCR text into structured data (store name, items with amounts, total) using regex*
+- [ ] Auto-fill bill form from parsed data — *On submission with image: process → open new pre-filled review modal → user reviews/edits → submits into existing flow*
 
 ### Phase 5: Payment Integration — NOT STARTED
 - [ ] Integration with payment services (PromptPay QR, etc.) — *Generate PromptPay QR codes for easy payment, and optionally verify payments via e-Slip QR*

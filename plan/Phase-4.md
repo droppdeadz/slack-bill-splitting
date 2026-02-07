@@ -6,7 +6,7 @@
 
 ## The Problem Today
 
-When creating a bill, the owner must **manually type everything**: bill name, each item name, each item's price. For a receipt with 10+ items, this is tedious and error-prone. Phase 4 solves this by letting users upload a receipt photo and having AI extract the data automatically.
+When creating a bill, the owner must **manually type everything**: bill name, each item name, each item's price. For a receipt with 10+ items, this is tedious and error-prone. Phase 4 solves this by letting users upload a receipt photo and having OCR extract the data automatically.
 
 ---
 
@@ -15,8 +15,32 @@ When creating a bill, the owner must **manually type everything**: bill name, ea
 Slack's `file_input` element only gives you the uploaded file **after the modal is submitted** — you can't process it mid-modal. This means we need a **two-step flow** when an image is uploaded:
 
 1. **Modal 1**: Upload the receipt image
-2. **Process**: Download image → send to AI → extract items
+2. **Process**: Download image → OCR with tesseract.js → parse text → extract items
 3. **Modal 2**: Show pre-filled create form for user to review/edit
+
+---
+
+## Technology: tesseract.js
+
+We use **tesseract.js** — a pure JavaScript OCR engine that runs locally in the Node.js process. No external API calls, no API keys, completely free.
+
+| Aspect | Detail |
+|--------|--------|
+| **Package** | `tesseract.js` (npm) |
+| **Cost** | Free — runs locally |
+| **Languages** | English (`eng`) + Thai (`tha`) — loaded on first use, cached after |
+| **How it works** | Downloads trained language data (~4MB per language) on first OCR call, then runs recognition locally |
+| **Output** | Raw text string from the image |
+| **Parsing** | We write a custom text parser with regex to extract item names and prices from the raw OCR text |
+
+### Trade-off vs AI-based approach
+
+tesseract.js gives **raw text** — not structured JSON. So we need a custom parser to extract items and prices. This works well for **clear, printed receipts** but may struggle with:
+- Very blurry or low-quality photos
+- Handwritten receipts
+- Unusual receipt layouts
+
+For most standard restaurant/store receipts (which are the primary use case), tesseract.js + regex parsing works well.
 
 ---
 
@@ -62,10 +86,14 @@ Step 2: User attaches a receipt photo AND clicks "Create Bill"
 Step 3: Bot processes the image
   a. Call Slack API `files.info` with the file_id to get download URL
   b. Download the image binary using the URL + bot token for auth
-  c. Send the image to Claude Vision API with a structured prompt:
-     "Extract all line items, their prices, and the restaurant/store name
-      from this receipt. Return as JSON."
-  d. Claude returns structured data, e.g.:
+  c. Run tesseract.js OCR on the image buffer:
+     - Languages: ['eng', 'tha'] (supports both English and Thai receipts)
+     - Returns raw text string
+  d. Parse the raw text with regex to extract structured data:
+     - Look for lines matching "item name ... price" patterns
+     - Detect total line (e.g., "Total", "รวม", "Grand Total")
+     - Detect store name (typically first non-empty line)
+  e. Parsed result:
      {
        "store_name": "Sushi Hiro",
        "items": [
@@ -113,16 +141,51 @@ Step 5: User reviews, edits if needed, adds participants, submits
 
 ---
 
+## Text Parsing Strategy
+
+Since tesseract.js returns raw text, we need a parser to extract structured receipt data. The parser uses a multi-step approach:
+
+### 1. Store Name Extraction
+- Take the first 1-3 non-empty lines of the receipt text
+- These typically contain the store/restaurant name
+- Skip lines that look like addresses, phone numbers, or dates
+
+### 2. Item + Price Extraction
+- Scan each line for a pattern: `text followed by a number`
+- Common patterns:
+  - `Salmon Sushi          350.00`
+  - `Salmon Sushi ฿350`
+  - `1x Salmon Sushi  350`
+  - `Salmon Sushi    350.00 B`
+- Regex: `/^(.+?)\s+(฿?\s*[\d,]+\.?\d*)\s*$/`
+- Filter out non-item lines (subtotals, tax, service charge, etc.)
+
+### 3. Total Extraction
+- Look for lines containing keywords: `Total`, `Grand Total`, `รวม`, `ยอดรวม`, `รวมทั้งสิ้น`, `Net`, `Amount Due`
+- Extract the number from that line
+
+### 4. Cleanup
+- Remove currency symbols and commas from amounts
+- Parse amounts to numbers
+- Filter out items with zero or negative amounts
+- Deduplicate obvious duplicates
+
+This approach handles most standard Thai and English printed receipts. Users can always edit the extracted data in the review modal.
+
+---
+
 ## Error / Edge Case Handling
 
 | Scenario | Behavior |
 |----------|----------|
-| **AI can't read the receipt** (blurry, not a receipt, etc.) | Show an error modal: "Couldn't read the receipt. Please try a clearer photo or create manually." with a "Create Manually" button that opens the standard empty form |
+| **OCR can't read the receipt** (blurry, too dark, etc.) | Show an error modal: "Couldn't read the receipt. Please try a clearer photo or create manually." with a "Create Manually" button that opens the standard empty form |
 | **Partial extraction** (some items unreadable) | Pre-fill what was extracted. User adds the rest manually |
 | **Only total found, no items** | Pre-fill bill name + total amount, set split type to "Equal" |
+| **No items and no total found** | Show error modal with "Create Manually" fallback |
 | **Wrong file type** (PDF, video, etc.) | Validate file type before processing. Show error: "Please upload an image (JPEG, PNG, or HEIC)" |
-| **AI API timeout or failure** | Show error modal with "Create Manually" fallback button |
+| **OCR timeout** (very large image) | Set a timeout (30s). On timeout, show error modal with "Create Manually" fallback |
 | **User fills form manually AND uploads image** | Image takes priority — process image and open review modal. Preserve any participants the user selected |
+| **First-time language data download** | tesseract.js downloads ~4MB per language on first use. This is cached for subsequent calls. May add 5-10s to the first OCR request |
 
 ---
 
@@ -132,7 +195,8 @@ Step 5: User reviews, edits if needed, adds participants, submits
 
 | File | Purpose |
 |------|---------|
-| `src/services/receiptParser.ts` | Downloads image from Slack, sends to Claude Vision API, returns structured receipt data |
+| `src/services/receiptOcr.ts` | Runs tesseract.js OCR on an image buffer, returns raw text |
+| `src/services/receiptParser.ts` | Parses raw OCR text into structured receipt data (store name, items, total) using regex |
 
 ### Modified Files
 
@@ -140,37 +204,16 @@ Step 5: User reviews, edits if needed, adds participants, submits
 |------|---------|
 | `src/views/createBillModal.ts` | Add optional `file_input` block at the top of the modal |
 | `src/commands/create.ts` | In submission handler: detect uploaded file → branch to image processing → open pre-filled review modal |
-| `src/config.ts` | Add `ANTHROPIC_API_KEY` env var |
 
 ### New Dependencies
 
 | Package | Purpose |
 |---------|---------|
-| `@anthropic-ai/sdk` | Claude API client for vision-based receipt parsing |
+| `tesseract.js` | Local OCR engine — extracts text from receipt images. Free, no API key needed |
 
-### New Environment Variable
+### No New Environment Variables
 
-```env
-ANTHROPIC_API_KEY=sk-ant-...    # For receipt image parsing via Claude Vision
-```
-
----
-
-## AI Prompt Strategy
-
-The Claude Vision prompt would be structured to return **consistent JSON**:
-
-```
-You are a receipt parser. Given a photo of a receipt or bill, extract:
-1. store_name: The restaurant or store name
-2. items: Array of { name, amount } for each line item
-3. total: The total amount on the receipt
-
-Return ONLY valid JSON. If you cannot read a field, omit it.
-Amounts should be numbers (no currency symbols).
-```
-
-This handles Thai, English, and mixed-language receipts since Claude has strong multilingual support.
+Unlike the previous AI-based approach, tesseract.js runs locally and requires **no API key or configuration**. Zero additional setup.
 
 ---
 
@@ -180,11 +223,14 @@ This handles Thai, English, and mixed-language receipts since Claude has strong 
 - Everything after bill creation — item selection DMs, payment flow, reminders, etc.
 - Database schema — no changes needed
 - All existing action handlers
+- Environment variables — no changes
+- Slack app scopes — `files:read` is already configured
 
 ---
 
 ## Checklist
 
 - [ ] Receipt/bill image upload in create modal — Add `file_input` to `buildCreateBillModal()`, optional field
-- [ ] OCR / image parsing — New `receiptParser.ts` service using Claude Vision API to extract structured data from receipt photos
+- [ ] OCR service — New `receiptOcr.ts` using tesseract.js to extract raw text from receipt images (English + Thai)
+- [ ] Receipt text parser — New `receiptParser.ts` to parse raw OCR text into structured data (store name, items with amounts, total) using regex
 - [ ] Auto-fill bill form from parsed data — On submission with image: process → open new pre-filled modal → user reviews → submits into existing flow
