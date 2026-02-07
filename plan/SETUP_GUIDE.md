@@ -151,9 +151,6 @@ Type `/<command> payment` to save your payment details. You can set up:
 
 Both are optional — set up one or both. Your details are saved and pre-filled when you run the command again.
 
-### Slip Verification (Optional)
-If the bot admin sets the `OPENSLIPVERIFY_API_KEY` environment variable, uploaded payment slips are automatically verified. The bot reads the QR code on the slip, checks it against the [OpenSlipVerify](https://openslipverify.com) API, and shows verification results to the bill creator alongside the confirm/reject buttons. If verification is unavailable, the manual flow works as usual.
-
 ### Checking Your Bills
 - `/<command> me` — Get a DM with all bills you still owe
 - `/<command> list` — See all active bills in the current channel

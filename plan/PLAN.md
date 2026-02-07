@@ -159,7 +159,7 @@ Creator clicks "Remind All" on bill card
 | Scheduler      | node-cron (for automatic reminders) |
 | OCR            | tesseract.js (local receipt scanning, no API key needed) |
 | QR Code        | promptpay-qr + qrcode (PromptPay QR generation)  |
-| Slip Verify    | jsQR + sharp + promptparse + OpenSlipVerify API   |
+| Slip Verify    | Manual (creator confirms/rejects uploaded slips)  |
 | Package Manager| pnpm                              |
 
 ---
@@ -192,7 +192,7 @@ slack-bill-splitting/
 │   │   ├── history.ts          # /<command> history
 │   │   └── payment.ts          # /<command> payment — payment method setup
 │   ├── actions/
-│   │   ├── markPaid.ts         # "Mark as Paid" button + modal submission + slip verification
+│   │   ├── markPaid.ts         # "Mark as Paid" button + modal submission
 │   │   ├── confirmPayment.ts   # Creator confirms/rejects payment
 │   │   ├── selectItems.ts      # Participant selects items via DM
 │   │   ├── completeCalc.ts     # Creator finalizes bill calculation
@@ -214,7 +214,7 @@ slack-bill-splitting/
 │   │   ├── receiptOcr.ts       # tesseract.js OCR wrapper for receipt images
 │   │   ├── receiptParser.ts    # Regex parser: raw OCR text → structured receipt data
 │   │   ├── promptPayQr.ts      # PromptPay QR code generation (PNG buffer)
-│   │   └── slipVerify.ts       # Slip verification via jsQR + OpenSlipVerify API
+│   │   └── (slip verification removed — manual confirm/reject only)
 │   ├── scheduler/
 │   │   └── reminders.ts        # Cron job for auto-reminders
 │   └── utils/
@@ -359,7 +359,7 @@ slack-bill-splitting/
 - [x] Bill card payment buttons — *Active bill cards conditionally show "Pay via PromptPay" (if creator has PromptPay) and/or "Payment Info" (if creator has bank account) before the existing "Mark as Paid" and "Manage Bill" buttons.*
 - [x] PromptPay QR generation — *Clicking "Pay via PromptPay" generates a QR code (via promptpay-qr + qrcode) with the participant's amount, uploads it to Slack, and shows it as an ephemeral message.*
 - [x] Bank account info display — *Clicking "Payment Info" shows bank name, masked account number (last 4 digits), and holder name as an ephemeral message.*
-- [x] Slip verification via OpenSlipVerify — *When a payment slip image is uploaded via "Mark as Paid" and `OPENSLIPVERIFY_API_KEY` is set: extracts QR from the slip (jsQR + sharp), parses the transaction ref (promptparse), calls OpenSlipVerify API, and includes verification results in the creator's DM notification. Falls back gracefully if QR extraction fails or API is unavailable.*
+- [x] ~~Slip verification via OpenSlipVerify~~ — *Removed. OpenSlipVerify no longer provides services. Payment slips are now verified manually by the bill creator (confirm/reject flow).*
 - [x] Edge case handling — *Creator can't click their own payment buttons. Non-participants get an error. Already-paid participants get a notification.*
 
 ---
@@ -453,7 +453,6 @@ DATABASE_PATH=./data/bills.db
 DEFAULT_CURRENCY=THB
 REMINDER_CRON=0 9 * * *    # Daily at 9 AM
 SLASH_COMMAND=slack-bill-splitting  # Must match command name in Slack app config
-OPENSLIPVERIFY_API_KEY=     # Optional: API key for slip verification (https://openslipverify.com)
 ```
 
 ---
