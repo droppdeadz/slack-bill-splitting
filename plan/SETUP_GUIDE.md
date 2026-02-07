@@ -92,8 +92,10 @@
    SLACK_SIGNING_SECRET=your-secret-here
    SLACK_APP_TOKEN=xapp-your-token-here
    SLASH_COMMAND=slack-bill-splitting
+   FILE_CLEANUP_CRON=0 3 * * *
    ```
    > Set `SLASH_COMMAND` to match the slash command name you created in Step 4 (without the `/`).
+   > `FILE_CLEANUP_CRON` controls when uploaded files are cleaned up from completed/cancelled bills (default: daily at 3 AM).
 
 ---
 
@@ -111,6 +113,7 @@ You should see:
 ```
 [DB] Database initialized successfully
 [Scheduler] Auto-reminders scheduled: 0 9 * * *
+[FileCleanup] File cleanup scheduled: 0 3 * * *
 ⚡ Slack Bill Splitting bot is running on port 3000
 ```
 

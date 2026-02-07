@@ -7,6 +7,7 @@ import {
 } from "../models/participant";
 import { buildMarkPaidModal } from "../views/markPaidModal";
 import { formatCurrency } from "../utils/formatCurrency";
+import { trackBillFile } from "../models/billFile";
 
 export function registerMarkPaidAction(app: App): void {
   // "Mark as Paid" button handler
@@ -92,6 +93,11 @@ export function registerMarkPaidAction(app: App): void {
       | { id: string; name: string; permalink: string; filetype: string }[]
       | undefined;
     const slipFile = files && files.length > 0 ? files[0] : null;
+
+    // Track payment slip file for cleanup
+    if (slipFile) {
+      trackBillFile(billId, slipFile.id, "payment_slip", userId);
+    }
 
     // Build creator notification blocks
     const blocks: any[] = [

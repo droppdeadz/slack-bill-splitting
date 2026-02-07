@@ -10,5 +10,6 @@ export const config = {
   databasePath: process.env.DATABASE_PATH || "./data/bills.db",
   defaultCurrency: process.env.DEFAULT_CURRENCY || "THB",
   reminderCron: process.env.REMINDER_CRON || "0 9 * * *",
+  fileCleanupCron: process.env.FILE_CLEANUP_CRON || "0 3 * * *",
   slashCommand: process.env.SLASH_COMMAND || "slack-bill-splitting",
 };

@@ -70,6 +70,20 @@ export function initializeDatabase(): void {
     );
 
     CREATE INDEX IF NOT EXISTS idx_payment_methods_user ON payment_methods(user_id);
+
+    CREATE TABLE IF NOT EXISTS bill_files (
+      id TEXT PRIMARY KEY,
+      bill_id TEXT NOT NULL,
+      slack_file_id TEXT NOT NULL,
+      file_type TEXT NOT NULL,
+      uploaded_by TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      deleted_at DATETIME,
+      FOREIGN KEY (bill_id) REFERENCES bills(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_bill_files_bill ON bill_files(bill_id);
+    CREATE INDEX IF NOT EXISTS idx_bill_files_pending ON bill_files(deleted_at);
   `);
 
   console.log("[DB] Database initialized successfully");

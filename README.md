@@ -38,6 +38,10 @@ Bill creators can run `/<command> payment` to save their **PromptPay** (type + I
 - **Manual:** Creator clicks **Manage Bill** → **Remind All** to DM all unpaid participants
 - **Automatic:** Daily reminders at a configurable time (default: 9 AM)
 
+### File Cleanup
+
+Uploaded files (payment slips, receipt images, PromptPay QR codes) are automatically cleaned up 7 days after the associated bill is completed or cancelled. Bot-uploaded files (QR codes) are deleted from Slack; user-uploaded files are marked as handled. Configurable via `FILE_CLEANUP_CRON` (default: daily at 3 AM).
+
 ## Tech Stack
 
 | Layer           | Technology                                                    |
@@ -94,6 +98,7 @@ PORT=3000
 DATABASE_PATH=./data/bills.db
 DEFAULT_CURRENCY=THB
 REMINDER_CRON=0 9 * * *
+FILE_CLEANUP_CRON=0 3 * * *
 SLASH_COMMAND=slack-bill-splitting
 ```
 
@@ -112,6 +117,7 @@ You should see:
 ```
 [DB] Database initialized successfully
 [Scheduler] Auto-reminders scheduled: 0 9 * * *
+[FileCleanup] File cleanup scheduled: 0 3 * * *
 ⚡ Slack Bill Splitting bot is running on port 3000
 ```
 
@@ -134,7 +140,8 @@ src/
 │   ├── billItem.ts         # Bill item CRUD operations
 │   ├── participant.ts      # Participant CRUD operations
 │   ├── itemSelection.ts    # Item selection CRUD operations
-│   └── paymentMethod.ts    # Payment method CRUD (PromptPay + bank account)
+│   ├── paymentMethod.ts    # Payment method CRUD (PromptPay + bank account)
+│   └── billFile.ts         # Bill file tracking for auto-cleanup
 ├── commands/
 │   ├── create.ts           # /<command> create — modal, submission & bill creation
 │   ├── list.ts             # /<command> list
@@ -165,7 +172,8 @@ src/
 │   ├── receiptParser.ts    # Regex parser: raw OCR text → structured receipt data
 │   ├── promptPayQr.ts      # PromptPay QR code generation (PNG buffer)
 ├── scheduler/
-│   └── reminders.ts        # Cron job for auto-reminders
+│   ├── reminders.ts        # Cron job for auto-reminders
+│   └── fileCleanup.ts      # Cron job for auto-deleting uploaded files
 └── utils/
     ├── formatCurrency.ts   # Format amounts (e.g., ฿1,320)
     └── splitCalculator.ts  # Calculate equal splits & per-person amounts
@@ -184,7 +192,7 @@ src/
 
 See [plan/PLAN.md](plan/PLAN.md) for the full implementation plan and roadmap.
 
-**Completed:** Equal split, item-based split (enter items + costs, participants self-select items via DM, creator finalizes calculation), payment confirmation flow with optional payment slip upload, bill management commands, manual & automatic reminders, list filters, DM for outstanding bills, full bill status lifecycle (pending/active/completed/cancelled), bill owner auto-included and auto-paid, receipt image scanning (OCR to auto-fill items from receipt photos), payment method management (PromptPay + bank account), PromptPay QR code generation on bill cards, bank account info display, manual slip verification (creator confirms/rejects).
+**Completed:** Equal split, item-based split (enter items + costs, participants self-select items via DM, creator finalizes calculation), payment confirmation flow with optional payment slip upload, bill management commands, manual & automatic reminders, list filters, DM for outstanding bills, full bill status lifecycle (pending/active/completed/cancelled), bill owner auto-included and auto-paid, receipt image scanning (OCR to auto-fill items from receipt photos), payment method management (PromptPay + bank account), PromptPay QR code generation on bill cards, bank account info display, manual slip verification (creator confirms/rejects), automatic file cleanup (uploaded files deleted 7 days after bill completion).
 
 ## License
 

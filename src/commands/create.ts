@@ -21,6 +21,7 @@ import {
 } from "../views/createBillModal";
 import { recognizeReceipt, MissingScopeError } from "../services/receiptOcr";
 import { parseReceiptText } from "../services/receiptParser";
+import { trackBillFile } from "../models/billFile";
 
 export function registerCreateHandlers(app: App): void {
   // Dynamic modal update: when entry_method changes, rebuild the modal
@@ -173,12 +174,18 @@ async function handleReceiptUpload(
   const userBillName: string =
     values.bill_name?.bill_name_input?.value || "";
 
+  // Thread receipt file ID through metadata for cleanup tracking
+  const updatedMetadata = JSON.stringify({
+    ...metadata,
+    receiptFileId: fileId,
+  });
+
   // Show processing modal (keeps the modal alive while we work)
   await ack({
     response_action: "update",
     view: {
       ...buildProcessingModal(channelId),
-      private_metadata: view.private_metadata,
+      private_metadata: updatedMetadata,
     },
   });
 
@@ -198,7 +205,7 @@ async function handleReceiptUpload(
         view_id: viewId,
         view: {
           ...buildOcrErrorModal(channelId),
-          private_metadata: view.private_metadata,
+          private_metadata: updatedMetadata,
         },
       });
       return;
@@ -226,7 +233,7 @@ async function handleReceiptUpload(
         view_id: viewId,
         view: {
           ...reviewModal,
-          private_metadata: view.private_metadata,
+          private_metadata: updatedMetadata,
         },
       });
     } else {
@@ -243,7 +250,7 @@ async function handleReceiptUpload(
         view_id: viewId,
         view: {
           ...reviewModal,
-          private_metadata: view.private_metadata,
+          private_metadata: updatedMetadata,
         },
       });
     }
@@ -260,7 +267,7 @@ async function handleReceiptUpload(
       view_id: viewId,
       view: {
         ...errorModal,
-        private_metadata: view.private_metadata,
+        private_metadata: updatedMetadata,
       },
     });
   }
@@ -312,6 +319,11 @@ async function handleEqualSplit(
     creatorId,
     channelId,
   });
+
+  // Track receipt image file for cleanup (if created via upload flow)
+  if (metadata.receiptFileId) {
+    trackBillFile(bill.id, metadata.receiptFileId, "receipt_image", creatorId);
+  }
 
   const amounts = splitEqual(totalAmount, participantIds.length);
   const participantData = participantIds.map(
@@ -411,6 +423,11 @@ async function handleItemSplit(
     creatorId,
     channelId,
   });
+
+  // Track receipt image file for cleanup (if created via upload flow)
+  if (metadata.receiptFileId) {
+    trackBillFile(bill.id, metadata.receiptFileId, "receipt_image", creatorId);
+  }
 
   // Add bill items
   const billItems = addBillItemsBulk(bill.id, parsedItems);

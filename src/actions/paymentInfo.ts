@@ -10,6 +10,7 @@ import {
 } from "../models/paymentMethod";
 import { generatePromptPayQr } from "../services/promptPayQr";
 import { buildBankInfoBlocks } from "../views/paymentInfoMessage";
+import { trackBillFile } from "../models/billFile";
 
 export function registerPaymentInfoAction(app: App): void {
   // "Pay via PromptPay" button handler
@@ -95,6 +96,12 @@ export function registerPaymentInfoAction(app: App): void {
             `Scan the QR code with your banking app, then click *Mark as Paid* on the bill card.`,
           ].join("\n"),
         });
+
+        // Track QR code file for cleanup
+        const uploadedFile = (upload as any)?.files?.[0];
+        if (uploadedFile?.id) {
+          trackBillFile(billId, uploadedFile.id, "promptpay_qr", "bot");
+        }
 
         // Let the user know in the original channel
         await client.chat.postEphemeral({

@@ -17,6 +17,7 @@ import { registerCompleteCalcAction } from "./actions/completeCalc";
 import { registerPaymentHandlers, openPaymentModal } from "./commands/payment";
 import { registerPaymentInfoAction } from "./actions/paymentInfo";
 import { startReminderScheduler } from "./scheduler/reminders";
+import { startFileCleanupScheduler } from "./scheduler/fileCleanup";
 import { buildCreateBillModal } from "./views/createBillModal";
 
 // Initialize the Slack app (Socket Mode for development)
@@ -127,6 +128,7 @@ registerPaymentInfoAction(app);
 
 // ── Scheduler ─────────────────────────────────────
 startReminderScheduler(app);
+startFileCleanupScheduler(app);
 
 // ── Start ─────────────────────────────────────────
 (async () => {

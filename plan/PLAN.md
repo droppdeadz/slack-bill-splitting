@@ -184,7 +184,8 @@ slack-bill-splitting/
 │   │   ├── billItem.ts         # Bill item CRUD operations
 │   │   ├── participant.ts      # Participant CRUD operations
 │   │   ├── itemSelection.ts    # Item selection CRUD operations
-│   │   └── paymentMethod.ts    # Payment method CRUD (PromptPay + bank account)
+│   │   ├── paymentMethod.ts    # Payment method CRUD (PromptPay + bank account)
+│   │   └── billFile.ts         # Bill file tracking for auto-cleanup
 │   ├── commands/
 │   │   ├── create.ts           # /<command> create — modal, submission & bill creation
 │   │   ├── list.ts             # /<command> list
@@ -216,7 +217,8 @@ slack-bill-splitting/
 │   │   ├── promptPayQr.ts      # PromptPay QR code generation (PNG buffer)
 │   │   └── (slip verification removed — manual confirm/reject only)
 │   ├── scheduler/
-│   │   └── reminders.ts        # Cron job for auto-reminders
+│   │   ├── reminders.ts        # Cron job for auto-reminders
+│   │   └── fileCleanup.ts      # Cron job for auto-deleting uploaded files
 │   └── utils/
 │       ├── formatCurrency.ts   # Format amounts (e.g., ฿1,320)
 │       └── splitCalculator.ts  # Calculate equal splits & per-person amounts from item selections
@@ -284,6 +286,17 @@ slack-bill-splitting/
 | bank_account_name   | TEXT      | Account holder name (null if no bank)       |
 | created_at          | DATETIME  | Timestamp                                   |
 | updated_at          | DATETIME  | Timestamp                                   |
+
+### `bill_files` table
+| Column        | Type      | Description                                         |
+|---------------|-----------|-----------------------------------------------------|
+| id            | TEXT (PK) | UUID                                                |
+| bill_id       | TEXT (FK) | Reference to bill                                   |
+| slack_file_id | TEXT      | Slack file ID for API calls                         |
+| file_type     | TEXT      | "payment_slip", "receipt_image", or "promptpay_qr"  |
+| uploaded_by   | TEXT      | Slack user ID or "bot"                              |
+| created_at    | DATETIME  | Timestamp                                           |
+| deleted_at    | DATETIME  | NULL until deleted/handled by cleanup               |
 
 > **Calculation:** When the creator finalizes, each item's cost is divided equally among all participants who selected it. A participant's total is the sum of their shares across all selected items.
 
@@ -361,6 +374,13 @@ slack-bill-splitting/
 - [x] Bank account info display — *Clicking "Payment Info" shows bank name, masked account number (last 4 digits), and holder name as an ephemeral message.*
 - [x] ~~Slip verification via OpenSlipVerify~~ — *Removed. OpenSlipVerify no longer provides services. Payment slips are now verified manually by the bill creator (confirm/reject flow).*
 - [x] Edge case handling — *Creator can't click their own payment buttons. Non-participants get an error. Already-paid participants get a notification.*
+
+### Phase 6: File Cleanup — COMPLETED
+> Automatically delete uploaded files (payment slips, receipt images, PromptPay QR codes) 7 days after the associated bill is completed or cancelled, reducing workspace file clutter.
+- [x] `bill_files` tracking table — *Tracks all Slack file IDs associated with bills (payment slips, receipt images, PromptPay QR codes) with file type and uploader info.*
+- [x] File tracking at upload points — *Payment slips (markPaid), receipt images (create via upload), and PromptPay QR codes (paymentInfo) are tracked in the `bill_files` table on upload.*
+- [x] Scheduled file cleanup — *Daily cron job (default: 3 AM) queries files on completed/cancelled bills older than 7 days, deletes bot-uploaded files (QR codes) via `files.delete`, and gracefully handles user-owned files (payment slips, receipt images) that the bot can't delete.*
+- [x] `FILE_CLEANUP_CRON` config — *Configurable cron schedule for file cleanup (default: `0 3 * * *`).*
 
 ---
 
@@ -452,6 +472,7 @@ PORT=3000
 DATABASE_PATH=./data/bills.db
 DEFAULT_CURRENCY=THB
 REMINDER_CRON=0 9 * * *    # Daily at 9 AM
+FILE_CLEANUP_CRON=0 3 * * *  # Daily at 3 AM — auto-delete files from completed bills
 SLASH_COMMAND=slack-bill-splitting  # Must match command name in Slack app config
 ```
 
