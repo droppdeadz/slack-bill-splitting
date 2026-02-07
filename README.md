@@ -20,7 +20,7 @@ A Slack bot focused on bill splitting and payment tracking. Create bills, split 
 2. Once everyone has selected, the **creator finalizes** the calculation
 3. Per-person amounts are computed and **payment tracking** begins
 
-Both flows end with: participants click **Mark as Paid**, creator confirms, bill auto-completes.
+Both flows end with: participants click **Mark as Paid**, optionally attach a payment slip (photo/screenshot), creator confirms (with the slip visible if provided), and the bill auto-completes when everyone has paid.
 
 ### Reminders
 
@@ -59,7 +59,7 @@ See [SETUP_GUIDE.md](SETUP_GUIDE.md) for detailed step-by-step instructions on c
 Quick summary of what you'll need:
 - Create a new app at https://api.slack.com/apps
 - Enable **Socket Mode** and generate an app-level token (`xapp-...`)
-- Add bot scopes: `commands`, `chat:write`, `chat:write.public`, `im:write`, `users:read`
+- Add bot scopes: `commands`, `chat:write`, `chat:write.public`, `im:write`, `users:read`, `files:read`
 - Create slash command: `/copter`
 - Enable **Interactivity**
 - Install the app to your workspace and copy the bot token (`xoxb-...`)
@@ -134,6 +134,7 @@ src/
 │   └── viewDetails.ts      # "View Details" button handler
 ├── views/
 │   ├── createBillModal.ts  # Modal form (items + participants)
+│   ├── markPaidModal.ts    # Modal for marking paid with optional slip upload
 │   ├── billCard.ts         # Bill card (pending/active states)
 │   ├── itemSelectMessage.ts # DM item selection for participants
 │   └── reminderMessage.ts  # DM reminder message
@@ -157,7 +158,7 @@ src/
 
 See [plan.md](plan.md) for the full implementation plan and roadmap.
 
-**Completed:** Equal split, item-based split (enter items + costs, participants self-select items via DM, creator finalizes calculation), payment confirmation flow, bill management commands, manual & automatic reminders, list filters, DM for outstanding bills, full bill status lifecycle (pending/active/completed/cancelled).
+**Completed:** Equal split, item-based split (enter items + costs, participants self-select items via DM, creator finalizes calculation), payment confirmation flow with optional payment slip upload, bill management commands, manual & automatic reminders, list filters, DM for outstanding bills, full bill status lifecycle (pending/active/completed/cancelled).
 
 **Coming next:** Bill image recognition (OCR to auto-fill items from receipt photos), payment integration (PromptPay QR).
 

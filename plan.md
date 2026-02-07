@@ -37,7 +37,9 @@ Copter is a Slack bot focused on bill splitting and payment tracking. Create bil
 
 ### 5. Mark as Paid
 - Participant clicks `Mark as Paid` on the bill card
-- Creator receives a notification to **confirm** or **reject** the payment
+- A modal opens where the participant can **optionally upload a payment slip** (screenshot/photo)
+- The upload is optional — participants who paid with cash can skip it
+- Creator receives a notification (with the slip image if provided) to **confirm** or **reject** the payment
 - Once confirmed, the bill card updates in real-time
 
 ### 6. Payment Reminders
@@ -109,7 +111,10 @@ Creator receives notification:
 ```
 Participant sees bill card in channel (active status)
   -> Clicks "Mark as Paid"
+  -> Modal opens: optionally upload a payment slip (photo/screenshot)
+  -> Participant submits (with or without slip)
   -> Creator gets DM: "@user says they paid ฿330 for 'Lunch'. Confirm?"
+     (includes payment slip image if uploaded)
   -> Creator clicks "Confirm"
   -> Bill card updates: user shows as Paid with checkmark
   -> If all paid -> Bill marked as "Completed"
@@ -173,6 +178,7 @@ copter/
 │   │   └── viewDetails.ts     # "View Details" button handler
 │   ├── views/
 │   │   ├── createBillModal.ts  # Modal form for creating bill (items + participants)
+│   │   ├── markPaidModal.ts    # Modal for marking as paid with optional slip upload
 │   │   ├── billCard.ts         # Bill card Block Kit message (pending/active states)
 │   │   ├── itemSelectMessage.ts # DM item selection checklist for participants
 │   │   └── reminderMessage.ts  # DM reminder message
@@ -244,6 +250,7 @@ copter/
 - `chat:write` - Send and update messages
 - `im:write` - Send DMs for reminders
 - `users:read` - Get user display names
+- `files:read` - Read uploaded payment slips
 
 ### Slash Command
 - `/copter` - Main command with subcommands (create, list, me, history)

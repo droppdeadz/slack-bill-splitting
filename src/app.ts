@@ -18,6 +18,8 @@ import { createBill, getBillById, updateBillMessageTs } from "./models/bill";
 import {
   addParticipantsBulk,
   getParticipantsByBill,
+  getParticipantById,
+  updateParticipantStatus,
 } from "./models/participant";
 import { addBillItemsBulk, getItemsByBill } from "./models/billItem";
 import { buildBillCard } from "./views/billCard";
@@ -27,6 +29,7 @@ import {
   buildCreateBillModal,
   parseItemsInput,
 } from "./views/createBillModal";
+import { formatCurrency } from "./utils/formatCurrency";
 
 // Initialize the Slack app (Socket Mode for development)
 const app = new App({
@@ -300,6 +303,101 @@ app.view("create_bill_modal", async ({ ack, view, client, body }) => {
         );
       }
     }
+  }
+});
+
+// ── Mark as Paid Modal Submission ─────────────────
+app.view("mark_paid_modal", async ({ ack, view, client, body }) => {
+  await ack();
+
+  const metadata = JSON.parse(view.private_metadata);
+  const { billId, participantId, channelId } = metadata;
+
+  const bill = getBillById(billId);
+  const participant = getParticipantById(participantId);
+  if (!bill || !participant) return;
+
+  const userId = body.user.id;
+
+  // Update participant status to pending (waiting for creator confirmation)
+  updateParticipantStatus(participantId, "pending");
+
+  // Check if a payment slip was uploaded
+  const slipData = view.state.values.payment_slip?.payment_slip_input;
+  const files = (slipData as any)?.files as
+    | { id: string; name: string; permalink: string; filetype: string }[]
+    | undefined;
+  const slipFile = files && files.length > 0 ? files[0] : null;
+
+  // Build creator notification blocks
+  const blocks: any[] = [
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `:money_with_wings: <@${userId}> says they paid *${formatCurrency(participant.amount, bill.currency)}* for *${bill.name}*`,
+      },
+    },
+  ];
+
+  // Add payment slip image if uploaded
+  if (slipFile) {
+    const imageTypes = ["png", "jpg", "jpeg", "heic", "gif"];
+    if (imageTypes.includes(slipFile.filetype)) {
+      blocks.push({
+        type: "image",
+        slack_file: { id: slipFile.id },
+        alt_text: "Payment slip",
+      });
+    } else {
+      // Non-image file (e.g., PDF) — show as a link
+      blocks.push({
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `:paperclip: <${slipFile.permalink}|${slipFile.name}>`,
+        },
+      });
+    }
+  }
+
+  blocks.push({
+    type: "actions",
+    block_id: `confirm_payment_${participantId}`,
+    elements: [
+      {
+        type: "button",
+        text: { type: "plain_text", text: "Confirm Payment" },
+        style: "primary",
+        action_id: "confirm_payment",
+        value: JSON.stringify({ participantId, billId }),
+      },
+      {
+        type: "button",
+        text: { type: "plain_text", text: "Reject" },
+        style: "danger",
+        action_id: "reject_payment",
+        value: JSON.stringify({ participantId, billId }),
+      },
+    ],
+  });
+
+  // Send DM to creator
+  await client.chat.postMessage({
+    channel: bill.creator_id,
+    blocks,
+    text: `${userId} says they paid for ${bill.name}. Confirm?`,
+  });
+
+  // Notify the participant via ephemeral in the channel
+  try {
+    await client.chat.postEphemeral({
+      channel: channelId,
+      user: userId,
+      text: `:hourglass_flowing_sand: Payment notification sent to <@${bill.creator_id}> for confirmation.`,
+    });
+  } catch {
+    // Ephemeral may fail if the channel context is unavailable (e.g., modal opened from DM)
   }
 });
 

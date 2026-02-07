@@ -33,6 +33,7 @@
    - `chat:write` — Send and update messages
    - `chat:write.public` — Send messages to channels the bot isn't in
    - `commands` — Add slash commands
+   - `files:read` — Read uploaded payment slips
    - `im:write` — Send direct messages (reminders & `/copter me`)
    - `users:read` — Read user display names
 
@@ -129,7 +130,7 @@ Type `/copter create` in any channel. A form pops up where you choose a split ty
 - **Item-based** — Enter individual items with their costs (one per line, e.g. "Salmon Sushi 350") and select participants. The total is calculated automatically from the items. The bot DMs each participant with a checklist to select which items they owe for. Shared items are split equally among everyone who selects them. Once all participants have selected, the bill card shows a "Complete Calculation" button for the creator to finalize per-person amounts and begin payment tracking.
 
 ### Paying a Bill
-Once a bill is in payment tracking, click the **"Mark as Paid"** button on the bill card. The bill creator gets a DM asking them to confirm your payment.
+Once a bill is in payment tracking, click the **"Mark as Paid"** button on the bill card. A popup lets you optionally attach a payment slip (photo or screenshot) — skip this if you paid with cash. The bill creator gets a DM with your payment slip (if attached) and buttons to confirm or reject.
 
 ### Getting Reminders
 The bill creator can click **"Manage Bill"** → **"Remind All"** to send DM reminders to everyone who hasn't paid yet. Only the bill creator sees the manage options. The bot also sends automatic daily reminders at 9 AM.
