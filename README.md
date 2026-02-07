@@ -1,4 +1,4 @@
-# Copter - Bill Splitting Bot for Slack
+# Slack Bill Splitting
 
 > Inspired by KBANK's [Khunthong (ขุนทอง)](https://www.kasikornbank.com/en/News/Pages/Khunthong.aspx) — a popular LINE chatbot in Thailand for group expense splitting.
 
@@ -11,7 +11,7 @@ A Slack bot focused on bill splitting and payment tracking. Create bills, split 
 - `/<command> me` — See your outstanding bills across all channels
 - `/<command> history` — Browse completed and cancelled bills
 
-> The slash command name defaults to `/copter` but is configurable via the `SLASH_COMMAND` environment variable. Set it to match whatever you configured at https://api.slack.com/apps.
+> The slash command name is configurable via the `SLASH_COMMAND` environment variable (default: `slack-bill-splitting`). Set it to match whatever you configured at https://api.slack.com/apps.
 
 ### How It Works
 
@@ -65,7 +65,7 @@ Quick summary of what you'll need:
 - Create a new app at https://api.slack.com/apps
 - Enable **Socket Mode** and generate an app-level token (`xapp-...`)
 - Add bot scopes: `commands`, `chat:write`, `chat:write.public`, `im:write`, `users:read`, `files:read`
-- Create a slash command (e.g. `/copter` — or any name you prefer)
+- Create a slash command (e.g. `/split`, `/bill` — or any name you prefer)
 - Enable **Interactivity**
 - Install the app to your workspace and copy the bot token (`xoxb-...`)
 
@@ -103,12 +103,12 @@ You should see:
 ```
 [DB] Database initialized successfully
 [Scheduler] Auto-reminders scheduled: 0 9 * * *
-⚡ Copter bot is running on port 3000
+⚡ Slack Bill Splitting bot is running on port 3000
 ```
 
 ### 5. Test in Slack
 
-Type your slash command (e.g. `/copter create`) in any channel to create your first bill.
+Type your slash command (e.g. `/<command> create`) in any channel to create your first bill.
 
 ## Project Structure
 
@@ -126,10 +126,10 @@ src/
 │   ├── participant.ts      # Participant CRUD operations
 │   └── itemSelection.ts    # Item selection CRUD operations
 ├── commands/
-│   ├── create.ts           # /copter create — modal, submission & bill creation
-│   ├── list.ts             # /copter list
-│   ├── me.ts               # /copter me
-│   └── history.ts          # /copter history
+│   ├── create.ts           # /<command> create — modal, submission & bill creation
+│   ├── list.ts             # /<command> list
+│   ├── me.ts               # /<command> me
+│   └── history.ts          # /<command> history
 ├── actions/
 │   ├── markPaid.ts         # "Mark as Paid" button + modal submission handler
 │   ├── confirmPayment.ts   # Creator confirms/rejects payment

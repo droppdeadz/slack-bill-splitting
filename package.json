@@ -1,7 +1,7 @@
 {
-  "name": "copter-slack-bot",
+  "name": "slack-bill-splitting",
   "version": "1.0.0",
-  "description": "Copter for Slack - Group bill splitting & money collection bot inspired by KBANK's Khunthong (ขุนทอง)",
+  "description": "Slack Bill Splitting - Group bill splitting & money collection bot inspired by KBANK's Khunthong (ขุนทอง)",
   "main": "dist/app.js",
   "scripts": {
     "build": "tsc",

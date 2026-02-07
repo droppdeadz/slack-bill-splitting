@@ -1,16 +1,16 @@
-# Copter for Slack - Implementation Plan
+# Slack Bill Splitting - Implementation Plan
 
 > Inspired by KBANK's Khunthong (ขุนทอง) — a popular LINE chatbot for group expense splitting.
 
 ## Overview
 
-Copter is a Slack bot focused on bill splitting and payment tracking. Create bills, split expenses among group members, track who has paid, and send reminders — all within Slack channels and DMs.
+Slack Bill Splitting is a Slack bot focused on bill splitting and payment tracking. Create bills, split expenses among group members, track who has paid, and send reminders — all within Slack channels and DMs.
 
 ---
 
 ## Core Features
 
-### 1. Create a Bill (`/copter create`)
+### 1. Create a Bill (`/<command> create`)
 - Creator specifies: **bill name**, **split type**, **participants** (mention @users)
 - **Equal split:** Creator enters a total amount — split evenly among all participants. Bill goes straight to payment tracking.
 - **Item-based split:** Creator enters a list of items with costs (e.g., "Pad Thai ฿120", "Som Tum ฿80"). Total is calculated automatically from items. Participants then self-select which items they owe for.
@@ -47,14 +47,14 @@ Copter is a Slack bot focused on bill splitting and payment tracking. Create bil
 - Automatic reminders can be scheduled (e.g., daily at 9 AM for outstanding bills)
 - Participants get a DM with a summary of all their unpaid bills
 
-### 7. Bill Summary (`/copter list`)
+### 7. Bill Summary (`/<command> list`)
 - Shows all active bills in the current channel
 - Filter by: `created by me`, `owed by me`, `all`
 
-### 8. My Outstanding Bills (`/copter me`)
+### 8. My Outstanding Bills (`/<command> me`)
 - DM the user a summary of all bills they owe across all channels
 
-### 9. Bill History (`/copter history`)
+### 9. Bill History (`/<command> history`)
 - View completed/cancelled bills
 
 ---
@@ -63,7 +63,7 @@ Copter is a Slack bot focused on bill splitting and payment tracking. Create bil
 
 ### Flow 1a: Creating a Bill (Equal Split — Manual Entry)
 ```
-User types: /copter create
+User types: /<command> create
   -> Modal opens: "How would you like to create this bill?"
      - User selects: "Enter Manually"
   -> Form shows (all required):
@@ -78,7 +78,7 @@ User types: /copter create
 
 ### Flow 1b: Creating a Bill (Item-based Split — Manual Entry)
 ```
-User types: /copter create
+User types: /<command> create
   -> Modal opens: "How would you like to create this bill?"
      - User selects: "Enter Manually"
   -> Form shows (all required):
@@ -92,7 +92,7 @@ User types: /copter create
 
 ### Flow 1c: Creating a Bill (Upload Receipt Image)
 ```
-User types: /copter create
+User types: /<command> create
   -> Modal opens: "How would you like to create this bill?"
      - User selects: "Upload Receipt Image"
   -> Form shows:
@@ -165,7 +165,7 @@ Creator clicks "Remind All" on bill card
 ## Project Structure
 
 ```
-copter/
+slack-bill-splitting/
 ├── plan/PLAN.md
 ├── package.json
 ├── tsconfig.json
@@ -183,10 +183,10 @@ copter/
 │   │   ├── participant.ts      # Participant CRUD operations
 │   │   └── itemSelection.ts    # Item selection CRUD operations
 │   ├── commands/
-│   │   ├── create.ts           # /copter create — modal, submission & bill creation
-│   │   ├── list.ts             # /copter list
-│   │   ├── me.ts               # /copter me
-│   │   └── history.ts          # /copter history
+│   │   ├── create.ts           # /<command> create — modal, submission & bill creation
+│   │   ├── list.ts             # /<command> list
+│   │   ├── me.ts               # /<command> me
+│   │   └── history.ts          # /<command> history
 │   ├── actions/
 │   │   ├── markPaid.ts         # "Mark as Paid" button + modal submission handler
 │   │   ├── confirmPayment.ts   # Creator confirms/rejects payment
@@ -284,7 +284,7 @@ copter/
 - Request URL: `https://<your-domain>/slack/events`
 
 ### Event Subscriptions (optional, for future)
-- `app_mention` - Allow `@copter` mentions as alternative to slash commands
+- `app_mention` - Allow `@bot` mentions as alternative to slash commands
 
 ---
 
@@ -292,24 +292,24 @@ copter/
 
 ### Phase 1: Foundation (MVP) — COMPLETED
 - [x] Project setup (TypeScript, Bolt, SQLite)
-- [x] `/copter create` command with modal
+- [x] `/<command> create` command with modal
 - [x] Bill card with Block Kit (posted to channel)
 - [x] Equal split calculation
 - [x] `Mark as Paid` button + creator confirmation flow
 - [x] Bill card real-time updates
 
 ### Phase 2: Management — COMPLETED
-- [x] `/copter list` - View active bills in channel
-- [x] `/copter me` - View my outstanding bills
-- [x] `/copter history` - View past bills
+- [x] `/<command> list` - View active bills in channel
+- [x] `/<command> me` - View my outstanding bills
+- [x] `/<command> history` - View past bills
 - [x] `Cancel Bill` functionality (creator only)
 
 ### Phase 3: Item-based Splitting & Polish — COMPLETED
 - [x] `Remind All` button - manual reminders via DM
 - [x] Automatic daily reminders (node-cron)
 - [x] Bill summary when all participants have paid (auto-completes bill)
-- [x] `/copter list` filters — *`/copter list all` (default), `/copter list mine` (bills I created), `/copter list owed` (bills I owe on). Filter hint shown in response.*
-- [x] `/copter me` as true DM — *Opens a DM conversation with the user and posts the outstanding bills summary there. Shows brief ephemeral confirmation in the original channel.*
+- [x] `/<command> list` filters — *`/<command> list all` (default), `/<command> list mine` (bills I created), `/<command> list owed` (bills I owe on). Filter hint shown in response.*
+- [x] `/<command> me` as true DM — *Opens a DM conversation with the user and posts the outstanding bills summary there. Shows brief ephemeral confirmation in the original channel.*
 - [x] Item-based bill creation — *Add "Item-based" as a split type alongside "Equal". When selected, creator enters bill name, list of items with costs, and selects participants. Total is calculated from items automatically. Replaces the old "Custom Amounts" per-person input.*
 - [x] Participant item selection via DM — *After bill creation, bot DMs each participant with an interactive checklist of items. Participant selects which items they owe for. Shared items (selected by multiple people) have their cost split equally among selectors. Bill card updates selection progress.*
 - [x] Creator finalizes calculation — *Once all participants have selected items, creator is notified and clicks "Complete Calculation". Per-person amounts are computed and the bill moves to active payment tracking.*
@@ -439,7 +439,7 @@ cp .env.example .env
 
 # 3. Create Slack App at https://api.slack.com/apps
 #    - Enable Socket Mode for local dev
-#    - Add slash command: /copter
+#    - Add slash command (e.g. /split)
 #    - Enable Interactivity
 #    - Add required bot scopes
 #    - Install to workspace
@@ -448,7 +448,7 @@ cp .env.example .env
 pnpm dev
 
 # 5. Test in Slack
-#    Type: /copter create
+#    Type: /<command> create
 ```
 
 ---
@@ -459,5 +459,5 @@ pnpm dev
 2. **Socket Mode for dev** - No need for ngrok/public URL during development.
 3. **Creator confirms payments** - Since this is not connected to real banking, the bill creator acts as the "source of truth" for payment verification.
 6. **Creator auto-paid** - The bill creator is always included as a participant and auto-marked as paid. They paid the bill upfront and collect from others — no need to pay themselves.
-4. **Channel-scoped bills** - Bills are tied to channels for context, but users can see all their bills via `/copter me`.
+4. **Channel-scoped bills** - Bills are tied to channels for context, but users can see all their bills via `/<command> me`.
 5. **Block Kit for rich UI** - Slack's Block Kit provides interactive buttons, modals, and rich formatting for a smooth in-Slack experience.

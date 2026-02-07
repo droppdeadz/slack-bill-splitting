@@ -1,6 +1,6 @@
-# Copter Slack Bot - Setup Guide
+# Slack Bill Splitting - Setup Guide
 
-> A step-by-step guide for setting up the Copter bill splitting bot (inspired by KBANK's Khunthong) on your Slack workspace.
+> A step-by-step guide for setting up the Slack Bill Splitting bot (inspired by KBANK's Khunthong) on your Slack workspace.
 
 ---
 
@@ -9,7 +9,7 @@
 1. Go to **https://api.slack.com/apps**
 2. Click **"Create New App"** → Choose **"From scratch"**
 3. Enter:
-   - **App Name:** `Copter`
+   - **App Name:** `Slack Bill Splitting` (or any name you prefer)
    - **Workspace:** Select your workspace
 4. Click **"Create App"**
 
@@ -19,7 +19,7 @@
 
 1. In the left sidebar, click **"Socket Mode"**
 2. Toggle **"Enable Socket Mode"** to ON
-3. Give the token a name: `copter-socket`
+3. Give the token a name: `bill-splitting-socket`
 4. Click **"Generate"**
 5. **Copy the `xapp-...` token** → Save it as `SLACK_APP_TOKEN` in your `.env` file
 
@@ -44,7 +44,7 @@
 1. In the left sidebar, click **"Slash Commands"**
 2. Click **"Create New Command"**
 3. Fill in:
-   - **Command:** Any name you like (e.g. `/copter`, `/split`, `/bill`)
+   - **Command:** Any name you like (e.g. `/split`, `/bill`)
    - **Short Description:** `Split bills and collect money from your team`
    - **Usage Hint:** `[create | list [all|mine|owed] | me | history | help]`
 4. Click **"Save"**
@@ -110,7 +110,7 @@ You should see:
 ```
 [DB] Database initialized successfully
 [Scheduler] Auto-reminders scheduled: 0 9 * * *
-⚡ Copter bot is running on port 3000
+⚡ Slack Bill Splitting bot is running on port 3000
 ```
 
 ---
@@ -118,8 +118,8 @@ You should see:
 ## Step 10: Test It!
 
 1. Go to any Slack channel
-2. Type `/<your-command> help` — You should see the help message
-3. Type `/<your-command> create` — A form should pop up
+2. Type `/<command> help` — You should see the help message
+3. Type `/<command> create` — A form should pop up
 4. Fill in a bill name, amount, and select participants
 5. The bill card should appear in the channel
 
@@ -128,7 +128,7 @@ You should see:
 ## How It Works (For Non-Developers)
 
 ### Creating a Bill
-Type your slash command (e.g. `/copter create`) in any channel. A form pops up where you first choose how to create the bill:
+Type your slash command (e.g. `/<command> create`) in any channel. A form pops up where you first choose how to create the bill:
 
 - **Enter Manually** (default) — Fill in bill details yourself. All fields are required: bill name, split type, amount/items, and participants.
   - *Equal split* — Enter a total amount and select participants. Everyone pays the same and payment tracking starts immediately.
@@ -157,7 +157,7 @@ The bill creator can click **"Manage Bill"** → **"Remind All"** to send DM rem
 | Problem | Solution |
 |---------|----------|
 | Slash command doesn't work | Make sure the bot is running (`pnpm dev`) and `SLASH_COMMAND` matches your Slack app config |
-| "not_in_channel" error | Invite the bot to the channel: `/invite @Copter` |
+| "not_in_channel" error | Invite the bot to the channel: `/invite @YourBotName` |
 | Modal doesn't open | Check that Interactivity is enabled in Slack App settings |
 | No DM reminders | Check that the bot has `im:write` scope |
 | Bot crashes on start | Verify all 3 tokens in `.env` are correct |

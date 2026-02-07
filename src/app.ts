@@ -79,7 +79,7 @@ app.command(`/${cmd}`, async ({ command, ack, client, body }) => {
         blocks: [
           {
             type: "header",
-            text: { type: "plain_text", text: "Copter - Bill Splitting Bot" },
+            text: { type: "plain_text", text: "Slack Bill Splitting" },
           },
           { type: "divider" },
           {
@@ -121,6 +121,6 @@ startReminderScheduler(app);
 // ── Start ─────────────────────────────────────────
 (async () => {
   await app.start(config.port);
-  console.log(`⚡ Copter bot is running on port ${config.port}`);
+  console.log(`⚡ Slack Bill Splitting bot is running on port ${config.port}`);
   console.log(`   Commands: /${cmd} [create|list|me|history|help]`);
 })();

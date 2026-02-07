@@ -2,7 +2,7 @@
 
 ## Project
 
-Copter - A Slack bill-splitting bot inspired by KBANK's Khunthong. Built with TypeScript, Slack Bolt, and SQLite.
+Slack Bill Splitting - A Slack bill-splitting bot inspired by KBANK's Khunthong. Built with TypeScript, Slack Bolt, and SQLite.
 
 ## Commands
 
