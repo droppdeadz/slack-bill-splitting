@@ -12,22 +12,6 @@ export interface Participant {
   created_at: string;
 }
 
-export function addParticipant(
-  billId: string,
-  userId: string,
-  amount: number
-): Participant {
-  const db = getDb();
-  const id = uuidv4();
-
-  db.prepare(
-    `INSERT INTO participants (id, bill_id, user_id, amount, status, created_at)
-     VALUES (?, ?, ?, ?, 'unpaid', ?)`
-  ).run(id, billId, userId, amount, new Date().toISOString());
-
-  return getParticipantById(id)!;
-}
-
 export function addParticipantsBulk(
   billId: string,
   participants: { userId: string; amount: number }[]

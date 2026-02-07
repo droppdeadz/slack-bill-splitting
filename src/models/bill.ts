@@ -89,23 +89,6 @@ export function getActiveBillsByChannel(channelId: string): Bill[] {
     .all(channelId) as Bill[];
 }
 
-export function getBillsByCreator(
-  creatorId: string,
-  status?: Bill["status"]
-): Bill[] {
-  const db = getDb();
-  if (status) {
-    return db
-      .prepare(
-        "SELECT * FROM bills WHERE creator_id = ? AND status = ? ORDER BY created_at DESC"
-      )
-      .all(creatorId, status) as Bill[];
-  }
-  return db
-    .prepare("SELECT * FROM bills WHERE creator_id = ? ORDER BY created_at DESC")
-    .all(creatorId) as Bill[];
-}
-
 export function getActiveBillsByChannelAndCreator(
   channelId: string,
   creatorId: string

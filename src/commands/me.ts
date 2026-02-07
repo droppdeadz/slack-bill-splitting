@@ -1,12 +1,6 @@
-import type { App } from "@slack/bolt";
 import { getUnpaidBillsForUser } from "../models/participant";
 import { buildOutstandingSummary } from "../views/reminderMessage";
 import { config } from "../config";
-
-export function registerMeCommand(app: App): void {
-  // This is handled as a subcommand of /copter
-  // The routing happens in app.ts
-}
 
 export async function handleMeCommand(
   client: any,

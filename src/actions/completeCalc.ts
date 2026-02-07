@@ -8,8 +8,7 @@ import {
   areAllParticipantsPaid,
 } from "../models/participant";
 import { getItemsByBill } from "../models/billItem";
-import { getDb } from "../database/connection";
-import { getItemBreakdownsByParticipant } from "../models/itemSelection";
+import { getAllSelectionsByBill, getItemBreakdownsByParticipant } from "../models/itemSelection";
 import { buildBillCard } from "../views/billCard";
 import { calculateItemSplits } from "../utils/splitCalculator";
 
@@ -57,15 +56,7 @@ export function registerCompleteCalcAction(app: App): void {
       const participants = getParticipantsByBill(billId);
 
       // Get all selections for this bill
-      const db = getDb();
-      const allSelections = db
-        .prepare(
-          `SELECT s.bill_item_id, s.participant_id
-           FROM item_selections s
-           JOIN participants p ON s.participant_id = p.id
-           WHERE p.bill_id = ?`
-        )
-        .all(billId) as { bill_item_id: string; participant_id: string }[];
+      const allSelections = getAllSelectionsByBill(billId);
 
       const participantTotals = calculateItemSplits(items, allSelections);
 

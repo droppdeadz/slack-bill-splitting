@@ -19,14 +19,6 @@ export function splitEqual(
   return amounts;
 }
 
-export function validateCustomSplit(
-  amounts: number[],
-  totalAmount: number
-): boolean {
-  const sum = amounts.reduce((acc, val) => acc + val, 0);
-  return Math.abs(sum - totalAmount) < 0.01;
-}
-
 /**
  * Calculate per-person amounts from item selections.
  * Each item's cost is divided equally among all participants who selected it.

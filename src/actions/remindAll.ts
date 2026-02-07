@@ -2,20 +2,7 @@ import type { App } from "@slack/bolt";
 import { getBillById } from "../models/bill";
 import { getUnpaidParticipantsByBill } from "../models/participant";
 import { buildReminderDM } from "../views/reminderMessage";
-
-function buildResultModal(message: string) {
-  return {
-    type: "modal" as const,
-    title: { type: "plain_text" as const, text: "Manage Bill" },
-    close: { type: "plain_text" as const, text: "Close" },
-    blocks: [
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: message },
-      },
-    ],
-  };
-}
+import { buildResultModal } from "../views/resultModal";
 
 export function registerRemindAllAction(app: App): void {
   app.action("remind_all", async ({ ack, body, client, action }) => {

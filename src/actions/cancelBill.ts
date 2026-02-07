@@ -4,20 +4,7 @@ import { getParticipantsByBill } from "../models/participant";
 import { getItemsByBill } from "../models/billItem";
 import { getItemBreakdownsByParticipant } from "../models/itemSelection";
 import { buildBillCard } from "../views/billCard";
-
-function buildResultModal(message: string) {
-  return {
-    type: "modal" as const,
-    title: { type: "plain_text" as const, text: "Manage Bill" },
-    close: { type: "plain_text" as const, text: "Close" },
-    blocks: [
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: message },
-      },
-    ],
-  };
-}
+import { buildResultModal } from "../views/resultModal";
 
 export function registerCancelBillAction(app: App): void {
   app.action("cancel_bill", async ({ ack, body, client, action }) => {

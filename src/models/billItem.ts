@@ -19,14 +19,11 @@ export function addBillItemsBulk(
      VALUES (?, ?, ?, ?, ?)`
   );
 
-  const ids: string[] = [];
   const insertMany = db.transaction(
     (itemList: { name: string; amount: number }[]) => {
       const now = new Date().toISOString();
       for (const item of itemList) {
-        const id = uuidv4();
-        ids.push(id);
-        stmt.run(id, billId, item.name, item.amount, now);
+        stmt.run(uuidv4(), billId, item.name, item.amount, now);
       }
     }
   );
@@ -44,9 +41,3 @@ export function getItemsByBill(billId: string): BillItem[] {
     .all(billId) as BillItem[];
 }
 
-export function getBillItemById(id: string): BillItem | undefined {
-  const db = getDb();
-  return db.prepare("SELECT * FROM bill_items WHERE id = ?").get(id) as
-    | BillItem
-    | undefined;
-}

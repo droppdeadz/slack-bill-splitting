@@ -113,20 +113,21 @@ src/
 ├── app.ts                  # Bolt app entry point & command router
 ├── config.ts               # Environment configuration
 ├── database/
-│   ├── schema.ts           # DB schema & migrations
-│   └── connection.ts       # DB connection
+│   ├── schema.ts           # DB schema & table creation
+│   ├── connection.ts       # DB connection
+│   └── migrate.ts          # Database migration runner
 ├── models/
 │   ├── bill.ts             # Bill CRUD operations
 │   ├── billItem.ts         # Bill item CRUD operations
 │   ├── participant.ts      # Participant CRUD operations
 │   └── itemSelection.ts    # Item selection CRUD operations
 ├── commands/
-│   ├── create.ts           # /copter create
+│   ├── create.ts           # /copter create — modal, submission & bill creation
 │   ├── list.ts             # /copter list
 │   ├── me.ts               # /copter me
 │   └── history.ts          # /copter history
 ├── actions/
-│   ├── markPaid.ts         # "Mark as Paid" button handler
+│   ├── markPaid.ts         # "Mark as Paid" button + modal submission handler
 │   ├── confirmPayment.ts   # Creator confirms/rejects payment
 │   ├── selectItems.ts      # Participant selects items via DM
 │   ├── completeCalc.ts     # Creator finalizes bill calculation
@@ -139,12 +140,13 @@ src/
 │   ├── markPaidModal.ts    # Modal for marking paid with optional slip upload
 │   ├── billCard.ts         # Bill card (pending/active states)
 │   ├── itemSelectMessage.ts # DM item selection for participants
-│   └── reminderMessage.ts  # DM reminder message
+│   ├── reminderMessage.ts  # DM reminder message
+│   └── resultModal.ts      # Shared result modal for manage bill actions
 ├── scheduler/
 │   └── reminders.ts        # Cron job for auto-reminders
 └── utils/
     ├── formatCurrency.ts   # Format amounts (e.g., ฿1,320)
-    └── splitCalculator.ts  # Calculate equal splits & per-person amounts from item selections
+    └── splitCalculator.ts  # Calculate equal splits & per-person amounts
 ```
 
 ## Scripts

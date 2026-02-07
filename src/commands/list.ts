@@ -1,4 +1,3 @@
-import type { App } from "@slack/bolt";
 import {
   getActiveBillsByChannel,
   getActiveBillsByChannelAndCreator,
@@ -8,11 +7,6 @@ import { getParticipantsByBill } from "../models/participant";
 import { formatCurrency } from "../utils/formatCurrency";
 
 export type ListFilter = "all" | "mine" | "owed";
-
-export function registerListCommand(app: App): void {
-  // This is handled as a subcommand of /copter
-  // The routing happens in app.ts
-}
 
 export async function handleListCommand(
   client: any,

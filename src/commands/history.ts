@@ -1,12 +1,6 @@
-import type { App } from "@slack/bolt";
 import { getCompletedBillsByChannel } from "../models/bill";
 import { getParticipantsByBill } from "../models/participant";
 import { formatCurrency } from "../utils/formatCurrency";
-
-export function registerHistoryCommand(app: App): void {
-  // This is handled as a subcommand of /copter
-  // The routing happens in app.ts
-}
 
 export async function handleHistoryCommand(
   client: any,
