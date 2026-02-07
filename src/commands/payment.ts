@@ -1,4 +1,4 @@
-import type { App } from "@slack/bolt";
+import type { App, AllMiddlewareArgs } from "@slack/bolt";
 import {
   getPaymentMethodByUser,
   upsertPaymentMethod,
@@ -75,7 +75,7 @@ export function registerPaymentHandlers(app: App): void {
 }
 
 export async function openPaymentModal(
-  client: any,
+  client: AllMiddlewareArgs["client"],
   triggerId: string,
   userId: string
 ): Promise<void> {

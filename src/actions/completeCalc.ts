@@ -1,4 +1,4 @@
-import type { App } from "@slack/bolt";
+import type { App, BlockAction, ButtonAction } from "@slack/bolt";
 import { getBillById, updateBillStatus } from "../models/bill";
 import {
   getParticipantsByBill,
@@ -14,12 +14,12 @@ import { buildBillCard } from "../views/billCard";
 import { calculateItemSplits } from "../utils/splitCalculator";
 
 export function registerCompleteCalcAction(app: App): void {
-  app.action(
+  app.action<BlockAction<ButtonAction>>(
     "complete_calculation",
     async ({ ack, body, client, action }) => {
       await ack();
 
-      const billId = (action as any).value;
+      const billId = action.value ?? "";
       const userId = body.user.id;
       const bill = getBillById(billId);
 
@@ -83,7 +83,8 @@ export function registerCompleteCalcAction(app: App): void {
       }
 
       // Refresh data and update the bill card
-      const updatedBill = getBillById(billId)!;
+      const updatedBill = getBillById(billId);
+      if (!updatedBill) return;
       const updatedParticipants = getParticipantsByBill(billId);
       const breakdowns = getItemBreakdownsByParticipant(billId);
       const creatorPm = getPaymentMethodByUser(bill.creator_id);

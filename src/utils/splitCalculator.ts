@@ -2,6 +2,9 @@ export function splitEqual(
   totalAmount: number,
   numberOfPeople: number
 ): number[] {
+  if (numberOfPeople <= 0) {
+    return [];
+  }
   const base = Math.floor((totalAmount / numberOfPeople) * 100) / 100;
   const remainder =
     Math.round((totalAmount - base * numberOfPeople) * 100) / 100;

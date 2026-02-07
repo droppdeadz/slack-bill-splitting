@@ -1,17 +1,19 @@
-import type { App } from "@slack/bolt";
+import type { App, BlockAction, ButtonAction } from "@slack/bolt";
+import { types } from "@slack/bolt";
+type KnownBlock = types.KnownBlock;
 import { getBillById } from "../models/bill";
 
 export function registerManageBillAction(app: App): void {
-  app.action("manage_bill", async ({ ack, body, client, action }) => {
+  app.action<BlockAction<ButtonAction>>("manage_bill", async ({ ack, body, client, action }) => {
     await ack();
 
-    const billId = (action as any).value;
+    const billId = action.value ?? "";
     const userId = body.user.id;
     const bill = getBillById(billId);
 
     if (!bill || (bill.status !== "active" && bill.status !== "pending")) {
       await client.chat.postEphemeral({
-        channel: (body as any).channel?.id || "",
+        channel: body.channel?.id || "",
         user: userId,
         text: "This bill is no longer active.",
       });
@@ -21,7 +23,7 @@ export function registerManageBillAction(app: App): void {
     // Only creator can manage the bill
     if (bill.creator_id !== userId) {
       await client.chat.postEphemeral({
-        channel: (body as any).channel?.id || "",
+        channel: body.channel?.id || "",
         user: userId,
         text: "Only the bill creator can manage this bill.",
       });
@@ -29,7 +31,7 @@ export function registerManageBillAction(app: App): void {
     }
 
     // Build modal blocks based on bill status
-    const modalBlocks: any[] = [];
+    const modalBlocks: KnownBlock[] = [];
 
     if (bill.status === "active") {
       modalBlocks.push({
@@ -64,7 +66,7 @@ export function registerManageBillAction(app: App): void {
     });
 
     await client.views.open({
-      trigger_id: (body as any).trigger_id,
+      trigger_id: body.trigger_id,
       view: {
         type: "modal",
         title: { type: "plain_text", text: "Manage Bill" },

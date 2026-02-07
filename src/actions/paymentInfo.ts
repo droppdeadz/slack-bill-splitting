@@ -1,4 +1,4 @@
-import type { App } from "@slack/bolt";
+import type { App, BlockAction, ButtonAction } from "@slack/bolt";
 import { getBillById } from "../models/bill";
 import {
   getParticipantByBillAndUser,
@@ -14,12 +14,12 @@ import { trackBillFile } from "../models/billFile";
 
 export function registerPaymentInfoAction(app: App): void {
   // "Pay via PromptPay" button handler
-  app.action(
+  app.action<BlockAction<ButtonAction>>(
     "pay_via_promptpay",
     async ({ ack, body, client, action }) => {
       await ack();
 
-      const billId = (action as any).value;
+      const billId = action.value ?? "";
       const userId = body.user.id;
       const channelId = body.channel?.id || "";
       const bill = getBillById(billId);
@@ -75,13 +75,13 @@ export function registerPaymentInfoAction(app: App): void {
       try {
         // Generate QR code
         const qrBuffer = await generatePromptPayQr(
-          pm.promptpay_id!,
+          pm.promptpay_id ?? "",
           participant.amount
         );
 
         // Open a DM with the user so we can upload the QR image there
         const dm = await client.conversations.open({ users: userId });
-        const dmChannelId = (dm as any).channel?.id;
+        const dmChannelId = dm.channel?.id;
         if (!dmChannelId) throw new Error("Could not open DM");
 
         // Upload QR image to the DM channel
@@ -98,7 +98,7 @@ export function registerPaymentInfoAction(app: App): void {
         });
 
         // Track QR code file for cleanup
-        const uploadedFile = (upload as any)?.files?.[0];
+        const uploadedFile = (upload as unknown as { files?: { id: string }[] })?.files?.[0];
         if (uploadedFile?.id) {
           trackBillFile(billId, uploadedFile.id, "promptpay_qr", "bot");
         }
@@ -121,12 +121,12 @@ export function registerPaymentInfoAction(app: App): void {
   );
 
   // "Payment Info" button handler (bank account details)
-  app.action(
+  app.action<BlockAction<ButtonAction>>(
     "payment_info",
     async ({ ack, body, client, action }) => {
       await ack();
 
-      const billId = (action as any).value;
+      const billId = action.value ?? "";
       const userId = body.user.id;
       const channelId = body.channel?.id || "";
       const bill = getBillById(billId);

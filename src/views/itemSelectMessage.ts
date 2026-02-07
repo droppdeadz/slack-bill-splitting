@@ -35,7 +35,7 @@ export function buildItemSelectDM(
           type: "checkboxes",
           action_id: "item_checkboxes",
           options: checkboxOptions,
-        } as any,
+        },
       ],
     },
     {

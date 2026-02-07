@@ -1,3 +1,4 @@
+import type { AllMiddlewareArgs } from "@slack/bolt";
 import {
   getActiveBillsByChannel,
   getActiveBillsByChannelAndCreator,
@@ -10,7 +11,7 @@ import { config } from "../config";
 export type ListFilter = "all" | "mine" | "owed";
 
 export async function handleListCommand(
-  client: any,
+  client: AllMiddlewareArgs["client"],
   channelId: string,
   userId: string,
   filter: ListFilter = "all"

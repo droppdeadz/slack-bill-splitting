@@ -1,9 +1,10 @@
+import type { AllMiddlewareArgs } from "@slack/bolt";
 import { getCompletedBillsByChannel } from "../models/bill";
 import { getParticipantsByBill } from "../models/participant";
 import { formatCurrency } from "../utils/formatCurrency";
 
 export async function handleHistoryCommand(
-  client: any,
+  client: AllMiddlewareArgs["client"],
   channelId: string,
   userId: string
 ): Promise<void> {

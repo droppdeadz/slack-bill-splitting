@@ -46,7 +46,9 @@ export function createBill(input: CreateBillInput): Bill {
     now
   );
 
-  return getBillById(id)!;
+  const bill = getBillById(id);
+  if (!bill) throw new Error(`Failed to retrieve bill after insert: ${id}`);
+  return bill;
 }
 
 export function getBillById(id: string): Bill | undefined {

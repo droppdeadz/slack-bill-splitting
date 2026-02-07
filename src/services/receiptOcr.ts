@@ -1,3 +1,4 @@
+import type { AllMiddlewareArgs } from "@slack/bolt";
 import { createWorker } from "tesseract.js";
 
 export interface OcrResult {
@@ -39,18 +40,20 @@ function isRecognizedImage(buf: Buffer): boolean {
  */
 export async function recognizeReceipt(
   fileId: string,
-  client: any
+  client: AllMiddlewareArgs["client"]
 ): Promise<OcrResult> {
   // 1. Get file info via Slack API (requires files:read scope)
   let downloadUrl: string;
   try {
     const info = await client.files.info({ file: fileId });
-    downloadUrl = (info.file as any)?.url_private_download;
+    const fileInfo = info.file as Record<string, unknown> | undefined;
+    downloadUrl = fileInfo?.url_private_download as string;
     if (!downloadUrl) {
       throw new Error("No download URL in file info");
     }
-  } catch (err: any) {
-    if (err?.data?.error === "missing_scope" || err?.message?.includes("missing_scope")) {
+  } catch (err: unknown) {
+    const slackError = err as { data?: { error?: string }; message?: string };
+    if (slackError?.data?.error === "missing_scope" || slackError?.message?.includes("missing_scope")) {
       throw new MissingScopeError();
     }
     throw err;
@@ -59,7 +62,7 @@ export async function recognizeReceipt(
   // 2. Download with manual redirect handling.
   //    Node fetch strips the Authorization header on cross-origin redirects,
   //    so we follow redirects ourselves.
-  const token = (client as any).token as string;
+  const token = (client as unknown as { token?: string }).token ?? "";
   const buffer = await downloadWithRedirects(downloadUrl, token);
 
   if (buffer.length === 0) {

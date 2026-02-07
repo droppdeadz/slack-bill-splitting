@@ -1,4 +1,12 @@
-import type { App } from "@slack/bolt";
+import type { App, BlockAction, AllMiddlewareArgs, ViewOutput, ViewResponseAction, ViewSubmitAction, AckFn } from "@slack/bolt";
+
+/** Subset of view-submission callback args that our helpers actually use. */
+interface ViewSubmitContext {
+  ack: AckFn<ViewResponseAction>;
+  view: ViewOutput;
+  client: AllMiddlewareArgs["client"];
+  body: ViewSubmitAction;
+}
 import { createBill, getBillById, updateBillMessageTs, updateBillStatus } from "../models/bill";
 import {
   addParticipantsBulk,
@@ -25,10 +33,11 @@ import { trackBillFile } from "../models/billFile";
 
 export function registerCreateHandlers(app: App): void {
   // Dynamic modal update: when entry_method changes, rebuild the modal
-  app.action("entry_method_input", async ({ ack, body, client }) => {
+  app.action<BlockAction>("entry_method_input", async ({ ack, body, client }) => {
     await ack();
 
-    const view = (body as any).view;
+    const view = body.view;
+    if (!view) return;
     const values = view.state.values;
     const entryMethod =
       values.entry_method?.entry_method_input?.selected_option?.value || "manual";
@@ -46,10 +55,11 @@ export function registerCreateHandlers(app: App): void {
   });
 
   // Dynamic modal update: when split_type changes, rebuild the modal
-  app.action("split_type_input", async ({ ack, body, client }) => {
+  app.action<BlockAction>("split_type_input", async ({ ack, body, client }) => {
     await ack();
 
-    const view = (body as any).view;
+    const view = body.view;
+    if (!view) return;
     const values = view.state.values;
     const splitType =
       values.split_type?.split_type_input?.selected_option?.value || "equal";
@@ -90,9 +100,8 @@ export function registerCreateHandlers(app: App): void {
     if (entryMethod === "upload") {
       // Upload flow — check for receipt image
       const fileData = values.receipt_image?.receipt_image_input;
-      const files = (fileData as any)?.files as
-        | { id: string }[]
-        | undefined;
+      const fileDataWithFiles = fileData as typeof fileData & { files?: { id: string }[] };
+      const files = fileDataWithFiles?.files;
 
       if (!files || files.length === 0) {
         await ack({
@@ -102,14 +111,13 @@ export function registerCreateHandlers(app: App): void {
         return;
       }
 
-      await handleReceiptUpload(ack, view, client, body, files[0].id);
+      await handleReceiptUpload({ ack, view, client, body } as ViewSubmitContext, files[0].id);
       return;
     }
 
     // Manual flow (or review modal where entry_method doesn't exist)
     const billName = values.bill_name?.bill_name_input?.value || "";
-    const splitType = values.split_type.split_type_input.selected_option!
-      .value as "equal" | "item";
+    const splitType = (values.split_type?.split_type_input?.selected_option?.value ?? "equal") as "equal" | "item";
     const participantIds =
       values.participants?.participants_input?.selected_users || [];
 
@@ -130,9 +138,9 @@ export function registerCreateHandlers(app: App): void {
     }
 
     if (splitType === "equal") {
-      await handleEqualSplit(ack, view, client, body, billName, participantIds);
+      await handleEqualSplit({ ack, view, client, body } as ViewSubmitContext, billName, participantIds);
     } else {
-      await handleItemSplit(ack, view, client, body, billName, participantIds);
+      await handleItemSplit({ ack, view, client, body } as ViewSubmitContext, billName, participantIds);
     }
   });
 
@@ -158,10 +166,7 @@ export function registerCreateHandlers(app: App): void {
  * 3. Update modal with pre-filled review form (or error)
  */
 async function handleReceiptUpload(
-  ack: any,
-  view: any,
-  client: any,
-  body: any,
+  { ack, view, client }: ViewSubmitContext,
   fileId: string
 ): Promise<void> {
   const metadata = JSON.parse(view.private_metadata);
@@ -274,10 +279,7 @@ async function handleReceiptUpload(
 }
 
 async function handleEqualSplit(
-  ack: any,
-  view: any,
-  client: any,
-  body: any,
+  { ack, view, client, body }: ViewSubmitContext,
   billName: string,
   participantIds: string[]
 ): Promise<void> {
@@ -342,7 +344,8 @@ async function handleEqualSplit(
   }
 
   const participants = getParticipantsByBill(bill.id);
-  const freshBill = getBillById(bill.id)!;
+  const freshBill = getBillById(bill.id);
+  if (!freshBill) return;
   const creatorPm = getPaymentMethodByUser(creatorId);
 
   const result = await client.chat.postMessage({
@@ -358,9 +361,9 @@ async function handleEqualSplit(
   // Auto-complete if creator is the only participant
   if (areAllParticipantsPaid(bill.id)) {
     updateBillStatus(bill.id, "completed");
-    const completedBill = getBillById(bill.id)!;
+    const completedBill = getBillById(bill.id);
     const updatedParticipants = getParticipantsByBill(bill.id);
-    if (completedBill.message_ts) {
+    if (completedBill?.message_ts) {
       await client.chat.update({
         channel: channelId,
         ts: completedBill.message_ts,
@@ -372,10 +375,7 @@ async function handleEqualSplit(
 }
 
 async function handleItemSplit(
-  ack: any,
-  view: any,
-  client: any,
-  body: any,
+  { ack, view, client, body }: ViewSubmitContext,
   billName: string,
   participantIds: string[]
 ): Promise<void> {
@@ -440,7 +440,8 @@ async function handleItemSplit(
   addParticipantsBulk(bill.id, participantData);
 
   const participants = getParticipantsByBill(bill.id);
-  const freshBill = getBillById(bill.id)!;
+  const freshBill = getBillById(bill.id);
+  if (!freshBill) return;
 
   // Post bill card in channel (pending state — no payment buttons needed)
   const result = await client.chat.postMessage({

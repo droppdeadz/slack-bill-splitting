@@ -1,4 +1,4 @@
-import type { App } from "@slack/bolt";
+import type { App, BlockAction, ButtonAction } from "@slack/bolt";
 import { getBillById } from "../models/bill";
 import { getParticipantsByBill } from "../models/participant";
 import { getItemsByBill } from "../models/billItem";
@@ -7,10 +7,10 @@ import { getPaymentMethodByUser } from "../models/paymentMethod";
 import { buildBillCard } from "../views/billCard";
 
 export function registerViewDetailsAction(app: App): void {
-  app.action("view_details", async ({ ack, body, client, action }) => {
+  app.action<BlockAction<ButtonAction>>("view_details", async ({ ack, body, client, action }) => {
     await ack();
 
-    const billId = (action as any).value;
+    const billId = action.value ?? "";
     const userId = body.user.id;
     const bill = getBillById(billId);
 

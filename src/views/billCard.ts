@@ -1,5 +1,6 @@
 import { types } from "@slack/bolt";
 type KnownBlock = types.KnownBlock;
+type ActionsBlockElement = types.ActionsBlockElement;
 import type { Bill } from "../models/bill";
 import type { Participant } from "../models/participant";
 import type { BillItem } from "../models/billItem";
@@ -83,7 +84,7 @@ function buildPendingItemCard(
   ];
 
   // Show "Complete Calculation" if all have selected, otherwise just "Cancel Bill"
-  const actionElements: any[] = [];
+  const actionElements: ActionsBlockElement[] = [];
 
   if (selectedCount === totalCount && totalCount > 0) {
     actionElements.push({
@@ -226,7 +227,7 @@ function buildActiveCard(
 
   // Add action buttons only for active bills
   if (bill.status === "active") {
-    const actionElements: any[] = [];
+    const actionElements: ActionsBlockElement[] = [];
 
     // Payment buttons based on creator's payment methods
     if (creatorPaymentMethod && hasPromptPay(creatorPaymentMethod)) {

@@ -1,23 +1,23 @@
-import type { App } from "@slack/bolt";
+import type { App, BlockAction, ButtonAction } from "@slack/bolt";
 import { getBillById } from "../models/bill";
 import { getUnpaidParticipantsByBill } from "../models/participant";
 import { buildReminderDM } from "../views/reminderMessage";
 import { buildResultModal } from "../views/resultModal";
 
 export function registerRemindAllAction(app: App): void {
-  app.action("remind_all", async ({ ack, body, client, action }) => {
+  app.action<BlockAction<ButtonAction>>("remind_all", async ({ ack, body, client, action }) => {
     await ack();
 
-    const billId = (action as any).value;
+    const billId = action.value ?? "";
     const userId = body.user.id;
     const bill = getBillById(billId);
-    const isFromModal = !!(body as any).view;
-    const channelId = (body as any).channel?.id || bill?.channel_id || "";
+    const isFromModal = !!body.view;
+    const channelId = body.channel?.id || bill?.channel_id || "";
 
     if (!bill || bill.status !== "active") {
       if (isFromModal) {
         await client.views.update({
-          view_id: (body as any).view.id,
+          view_id: body.view?.id ?? "",
           view: buildResultModal(":x: This bill is no longer active."),
         });
       } else {
@@ -34,7 +34,7 @@ export function registerRemindAllAction(app: App): void {
     if (bill.creator_id !== userId) {
       if (isFromModal) {
         await client.views.update({
-          view_id: (body as any).view.id,
+          view_id: body.view?.id ?? "",
           view: buildResultModal(":x: Only the bill creator can send reminders."),
         });
       } else {
@@ -52,7 +52,7 @@ export function registerRemindAllAction(app: App): void {
     if (unpaidParticipants.length === 0) {
       if (isFromModal) {
         await client.views.update({
-          view_id: (body as any).view.id,
+          view_id: body.view?.id ?? "",
           view: buildResultModal(":white_check_mark: Everyone has already paid!"),
         });
       } else {
@@ -93,7 +93,7 @@ export function registerRemindAllAction(app: App): void {
     const resultText = `:bell: Reminders sent to ${sentCount} participant(s).`;
     if (isFromModal) {
       await client.views.update({
-        view_id: (body as any).view.id,
+        view_id: body.view?.id ?? "",
         view: buildResultModal(resultText),
       });
     } else {

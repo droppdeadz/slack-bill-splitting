@@ -19,6 +19,9 @@ export function formatCurrency(
 }
 
 export function progressBar(current: number, total: number): string {
+  if (total <= 0) {
+    return `${"░".repeat(20)} 0%`;
+  }
   const percentage = Math.round((current / total) * 100);
   const filled = Math.round(percentage / 5);
   const empty = 20 - filled;

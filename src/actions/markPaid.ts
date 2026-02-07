@@ -1,4 +1,6 @@
-import type { App } from "@slack/bolt";
+import type { App, BlockAction, ButtonAction } from "@slack/bolt";
+import { types } from "@slack/bolt";
+type KnownBlock = types.KnownBlock;
 import { getBillById } from "../models/bill";
 import {
   getParticipantById,
@@ -11,10 +13,10 @@ import { trackBillFile } from "../models/billFile";
 
 export function registerMarkPaidAction(app: App): void {
   // "Mark as Paid" button handler
-  app.action("mark_paid", async ({ ack, body, client, action }) => {
+  app.action<BlockAction<ButtonAction>>("mark_paid", async ({ ack, body, client, action }) => {
     await ack();
 
-    const billId = (action as any).value;
+    const billId = action.value ?? "";
     const userId = body.user.id;
     const bill = getBillById(billId);
 
@@ -59,7 +61,7 @@ export function registerMarkPaidAction(app: App): void {
 
     // Open modal for optional payment slip upload
     await client.views.open({
-      trigger_id: (body as any).trigger_id,
+      trigger_id: body.trigger_id,
       view: buildMarkPaidModal({
         billId: bill.id,
         billName: bill.name,
@@ -89,9 +91,8 @@ export function registerMarkPaidAction(app: App): void {
 
     // Check if a payment slip was uploaded
     const slipData = view.state.values.payment_slip?.payment_slip_input;
-    const files = (slipData as any)?.files as
-      | { id: string; name: string; permalink: string; filetype: string }[]
-      | undefined;
+    const slipDataWithFiles = slipData as typeof slipData & { files?: { id: string; name: string; permalink: string; filetype: string }[] };
+    const files = slipDataWithFiles?.files;
     const slipFile = files && files.length > 0 ? files[0] : null;
 
     // Track payment slip file for cleanup
@@ -100,7 +101,7 @@ export function registerMarkPaidAction(app: App): void {
     }
 
     // Build creator notification blocks
-    const blocks: any[] = [
+    const blocks: KnownBlock[] = [
       {
         type: "section",
         text: {
@@ -166,7 +167,7 @@ export function registerMarkPaidAction(app: App): void {
         user: userId,
         text: `:hourglass_flowing_sand: Payment notification sent to <@${bill.creator_id}> for confirmation.`,
       });
-    } catch {
+    } catch (_err: unknown) {
       // Ephemeral may fail if the channel context is unavailable (e.g., modal opened from DM)
     }
   });

@@ -1,15 +1,16 @@
-import { getUnpaidBillsForUser } from "../models/participant";
+import type { AllMiddlewareArgs } from "@slack/bolt";
+import { getUnpaidBillsForUser, type UnpaidBillEntry } from "../models/participant";
 import { buildOutstandingSummary } from "../views/reminderMessage";
 import { config } from "../config";
 
 export async function handleMeCommand(
-  client: any,
+  client: AllMiddlewareArgs["client"],
   channelId: string,
   userId: string
 ): Promise<void> {
   const unpaidBills = getUnpaidBillsForUser(userId);
 
-  const billData = unpaidBills.map((b: any) => ({
+  const billData = unpaidBills.map((b: UnpaidBillEntry) => ({
     bill_name: b.bill_name,
     amount: b.amount,
     creator_id: b.creator_id,

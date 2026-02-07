@@ -64,9 +64,10 @@ export function runMigrations(): void {
 
     try {
       db.exec(migration.up);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Skip if column already exists (e.g. fresh DB created with full schema)
-      if (err.message?.includes("duplicate column name")) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes("duplicate column name")) {
         console.log(`[Migrate] Skipping ${migration.name} (already applied)`);
       } else {
         throw err;

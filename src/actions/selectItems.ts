@@ -1,4 +1,4 @@
-import type { App } from "@slack/bolt";
+import type { App, BlockAction, ButtonAction } from "@slack/bolt";
 import { getBillById } from "../models/bill";
 import {
   getParticipantByBillAndUser,
@@ -17,12 +17,12 @@ export function registerSelectItemsAction(app: App): void {
   });
 
   // Handle "Confirm Selection" button
-  app.action(
+  app.action<BlockAction<ButtonAction>>(
     "submit_item_selection",
     async ({ ack, body, client, action }) => {
       await ack();
 
-      const billId = (action as any).value;
+      const billId = action.value ?? "";
       const userId = body.user.id;
       const bill = getBillById(billId);
 
@@ -51,24 +51,19 @@ export function registerSelectItemsAction(app: App): void {
         return;
       }
 
-      // Extract selected item IDs from the checkbox state in the message
-      const message = (body as any).message;
-      const checkboxBlock = message?.blocks?.find(
-        (b: any) => b.block_id === `item_select_${billId}`
-      );
-      const checkboxAction = checkboxBlock?.elements?.find(
-        (e: any) => e.action_id === "item_checkboxes"
-      );
+      // Extract selected item IDs from the action state in the message
+      const message = body.message;
 
-      // Get currently selected options from the action state
       // In Slack, the state is stored in body.state for block actions
-      const stateValues = (body as any).state?.values;
+      const stateValues = body.state?.values;
       const selectBlock = stateValues?.[`item_select_${billId}`];
-      const selectedOptions =
-        selectBlock?.item_checkboxes?.selected_options || [];
+      const checkboxState = selectBlock?.item_checkboxes;
+      const selectedOptions = checkboxState && "selected_options" in checkboxState
+        ? (checkboxState.selected_options as { value: string }[])
+        : [];
 
       const selectedItemIds: string[] = selectedOptions.map(
-        (opt: any) => opt.value
+        (opt) => opt.value
       );
 
       if (selectedItemIds.length === 0) {
@@ -86,7 +81,7 @@ export function registerSelectItemsAction(app: App): void {
       // Update the DM message to show confirmation
       await client.chat.update({
         channel: body.channel?.id || userId,
-        ts: message.ts,
+        ts: message?.ts ?? "",
         blocks: [
           {
             type: "section",
@@ -102,7 +97,8 @@ export function registerSelectItemsAction(app: App): void {
       // Update the bill card in the channel
       const participants = getParticipantsByBill(billId);
       const items = getItemsByBill(billId);
-      const updatedBill = getBillById(billId)!;
+      const updatedBill = getBillById(billId);
+      if (!updatedBill) return;
 
       if (updatedBill.message_ts) {
         await client.chat.update({

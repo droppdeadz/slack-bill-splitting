@@ -1,4 +1,4 @@
-import type { App } from "@slack/bolt";
+import type { App, BlockAction, ButtonAction } from "@slack/bolt";
 import { getBillById, updateBillStatus } from "../models/bill";
 import {
   updateParticipantStatus,
@@ -13,10 +13,10 @@ import { buildBillCard } from "../views/billCard";
 
 export function registerConfirmPaymentAction(app: App): void {
   // Confirm payment
-  app.action("confirm_payment", async ({ ack, body, client, action }) => {
+  app.action<BlockAction<ButtonAction>>("confirm_payment", async ({ ack, body, client, action }) => {
     await ack();
 
-    const { participantId, billId } = JSON.parse((action as any).value);
+    const { participantId, billId } = JSON.parse(action.value ?? "{}");
     const participant = getParticipantById(participantId);
     const bill = getBillById(billId);
 
@@ -31,7 +31,8 @@ export function registerConfirmPaymentAction(app: App): void {
     }
 
     // Update the original bill card in the channel
-    const updatedBill = getBillById(billId)!;
+    const updatedBill = getBillById(billId);
+    if (!updatedBill) return;
     const participants = getParticipantsByBill(billId);
     const items = getItemsByBill(billId);
     const breakdowns = updatedBill.split_type === "item"
@@ -51,7 +52,7 @@ export function registerConfirmPaymentAction(app: App): void {
     // Update the confirmation message
     await client.chat.update({
       channel: body.channel?.id || body.user.id,
-      ts: (body as any).message.ts,
+      ts: body.message?.ts ?? "",
       blocks: [
         {
           type: "section",
@@ -72,10 +73,10 @@ export function registerConfirmPaymentAction(app: App): void {
   });
 
   // Reject payment
-  app.action("reject_payment", async ({ ack, body, client, action }) => {
+  app.action<BlockAction<ButtonAction>>("reject_payment", async ({ ack, body, client, action }) => {
     await ack();
 
-    const { participantId, billId } = JSON.parse((action as any).value);
+    const { participantId, billId } = JSON.parse(action.value ?? "{}");
     const participant = getParticipantById(participantId);
     const bill = getBillById(billId);
 
@@ -87,7 +88,7 @@ export function registerConfirmPaymentAction(app: App): void {
     // Update the confirmation message
     await client.chat.update({
       channel: body.channel?.id || body.user.id,
-      ts: (body as any).message.ts,
+      ts: body.message?.ts ?? "",
       blocks: [
         {
           type: "section",

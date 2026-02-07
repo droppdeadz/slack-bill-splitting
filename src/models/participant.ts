@@ -78,13 +78,14 @@ export function getUnpaidParticipantsByBill(billId: string): Participant[] {
     .all(billId) as Participant[];
 }
 
-export function getUnpaidBillsForUser(userId: string): {
-  participant: Participant;
+export interface UnpaidBillEntry extends Participant {
   bill_name: string;
   creator_id: string;
   channel_id: string;
   bill_id: string;
-}[] {
+}
+
+export function getUnpaidBillsForUser(userId: string): UnpaidBillEntry[] {
   const db = getDb();
   return db
     .prepare(
@@ -94,7 +95,7 @@ export function getUnpaidBillsForUser(userId: string): {
        WHERE p.user_id = ? AND p.status != 'paid' AND b.status = 'active'
        ORDER BY b.created_at DESC`
     )
-    .all(userId) as any[];
+    .all(userId) as UnpaidBillEntry[];
 }
 
 export function areAllParticipantsPaid(billId: string): boolean {

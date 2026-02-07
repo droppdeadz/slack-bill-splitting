@@ -24,8 +24,9 @@ export function startFileCleanupScheduler(app: App): void {
         });
         markFileDeleted(file.id);
         deleted++;
-      } catch (err: any) {
-        const errorCode = err?.data?.error || err?.message || "";
+      } catch (err: unknown) {
+        const slackError = err as { data?: { error?: string }; message?: string };
+        const errorCode = slackError?.data?.error || slackError?.message || "";
 
         if (
           errorCode === "file_not_found" ||

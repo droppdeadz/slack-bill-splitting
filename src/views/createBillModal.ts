@@ -103,22 +103,10 @@ export function buildCreateBillModal(options?: ModalOptions): View {
         action_id: "receipt_image_input",
         filetypes: ["png", "jpg", "jpeg", "heic"],
         max_files: 1,
-      } as any,
+      },
     });
 
     // Bill name (optional — will be extracted from receipt)
-    const billNameElement: any = {
-      type: "plain_text_input",
-      action_id: "bill_name_input",
-      placeholder: {
-        type: "plain_text",
-        text: "e.g., Lunch at Sushi place",
-      },
-    };
-    if (options?.billName) {
-      billNameElement.initial_value = options.billName;
-    }
-
     blocks.push({
       type: "input",
       block_id: "bill_name",
@@ -131,22 +119,18 @@ export function buildCreateBillModal(options?: ModalOptions): View {
         type: "plain_text",
         text: "Leave blank to use the store name from the receipt.",
       },
-      element: billNameElement,
+      element: {
+        type: "plain_text_input",
+        action_id: "bill_name_input",
+        placeholder: {
+          type: "plain_text",
+          text: "e.g., Lunch at Sushi place",
+        },
+        ...(options?.billName ? { initial_value: options.billName } : {}),
+      },
     });
 
     // Participants (optional — can be added in review modal)
-    const participantsElement: any = {
-      type: "multi_users_select",
-      action_id: "participants_input",
-      placeholder: {
-        type: "plain_text",
-        text: "Select people to split with",
-      },
-    };
-    if (options?.selectedUsers && options.selectedUsers.length > 0) {
-      participantsElement.initial_users = options.selectedUsers;
-    }
-
     blocks.push({
       type: "input",
       block_id: "participants",
@@ -155,24 +139,22 @@ export function buildCreateBillModal(options?: ModalOptions): View {
         type: "plain_text",
         text: "Participants",
       },
-      element: participantsElement,
+      element: {
+        type: "multi_users_select",
+        action_id: "participants_input",
+        placeholder: {
+          type: "plain_text",
+          text: "Select people to split with",
+        },
+        ...(options?.selectedUsers && options.selectedUsers.length > 0
+          ? { initial_users: options.selectedUsers }
+          : {}),
+      },
     });
   } else {
     // ── Manual mode (or Review mode) ──
 
     // Bill name (required)
-    const billNameElement: any = {
-      type: "plain_text_input",
-      action_id: "bill_name_input",
-      placeholder: {
-        type: "plain_text",
-        text: "e.g., Lunch at Sushi place",
-      },
-    };
-    if (options?.billName) {
-      billNameElement.initial_value = options.billName;
-    }
-
     blocks.push({
       type: "input",
       block_id: "bill_name",
@@ -181,7 +163,15 @@ export function buildCreateBillModal(options?: ModalOptions): View {
         type: "plain_text",
         text: "Bill Name",
       },
-      element: billNameElement,
+      element: {
+        type: "plain_text_input",
+        action_id: "bill_name_input",
+        placeholder: {
+          type: "plain_text",
+          text: "e.g., Lunch at Sushi place",
+        },
+        ...(options?.billName ? { initial_value: options.billName } : {}),
+      },
     });
 
     // Split type selector
@@ -218,18 +208,6 @@ export function buildCreateBillModal(options?: ModalOptions): View {
 
     if (splitType === "equal") {
       // Total amount (required)
-      const totalElement: any = {
-        type: "plain_text_input",
-        action_id: "total_amount_input",
-        placeholder: {
-          type: "plain_text",
-          text: "e.g., 1320",
-        },
-      };
-      if (options?.totalAmount) {
-        totalElement.initial_value = options.totalAmount;
-      }
-
       blocks.push({
         type: "input",
         block_id: "total_amount",
@@ -238,23 +216,18 @@ export function buildCreateBillModal(options?: ModalOptions): View {
           type: "plain_text",
           text: "Total Amount",
         },
-        element: totalElement,
+        element: {
+          type: "plain_text_input",
+          action_id: "total_amount_input",
+          placeholder: {
+            type: "plain_text",
+            text: "e.g., 1320",
+          },
+          ...(options?.totalAmount ? { initial_value: options.totalAmount } : {}),
+        },
       });
     } else {
       // Items input (required)
-      const itemsElement: any = {
-        type: "plain_text_input",
-        action_id: "items_input",
-        multiline: true,
-        placeholder: {
-          type: "plain_text",
-          text: "Salmon Sushi 350\nRamen 280\nGyoza 340\nGreen Tea x4 350",
-        },
-      };
-      if (options?.itemsText) {
-        itemsElement.initial_value = options.itemsText;
-      }
-
       blocks.push({
         type: "input",
         block_id: "items",
@@ -263,7 +236,16 @@ export function buildCreateBillModal(options?: ModalOptions): View {
           type: "plain_text",
           text: "Items (one per line: name amount)",
         },
-        element: itemsElement,
+        element: {
+          type: "plain_text_input",
+          action_id: "items_input",
+          multiline: true,
+          placeholder: {
+            type: "plain_text",
+            text: "Salmon Sushi 350\nRamen 280\nGyoza 340\nGreen Tea x4 350",
+          },
+          ...(options?.itemsText ? { initial_value: options.itemsText } : {}),
+        },
         hint: {
           type: "plain_text",
           text: "Enter each item on its own line. The last number on each line is the cost.",
@@ -272,18 +254,6 @@ export function buildCreateBillModal(options?: ModalOptions): View {
     }
 
     // Participants (required)
-    const participantsElement: any = {
-      type: "multi_users_select",
-      action_id: "participants_input",
-      placeholder: {
-        type: "plain_text",
-        text: "Select people to split with",
-      },
-    };
-    if (options?.selectedUsers && options.selectedUsers.length > 0) {
-      participantsElement.initial_users = options.selectedUsers;
-    }
-
     blocks.push({
       type: "input",
       block_id: "participants",
@@ -292,7 +262,17 @@ export function buildCreateBillModal(options?: ModalOptions): View {
         type: "plain_text",
         text: "Participants",
       },
-      element: participantsElement,
+      element: {
+        type: "multi_users_select",
+        action_id: "participants_input",
+        placeholder: {
+          type: "plain_text",
+          text: "Select people to split with",
+        },
+        ...(options?.selectedUsers && options.selectedUsers.length > 0
+          ? { initial_users: options.selectedUsers }
+          : {}),
+      },
     });
   }
 

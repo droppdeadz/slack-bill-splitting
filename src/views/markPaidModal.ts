@@ -43,7 +43,7 @@ export function buildMarkPaidModal(options: MarkPaidModalOptions): View {
         action_id: "payment_slip_input",
         filetypes: ["png", "jpg", "jpeg", "heic", "pdf"],
         max_files: 1,
-      } as any,
+      },
     },
   ];
 
