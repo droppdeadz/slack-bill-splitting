@@ -22,6 +22,27 @@ import { recognizeReceipt, MissingScopeError } from "../services/receiptOcr";
 import { parseReceiptText } from "../services/receiptParser";
 
 export function registerCreateHandlers(app: App): void {
+  // Dynamic modal update: when entry_method changes, rebuild the modal
+  app.action("entry_method_input", async ({ ack, body, client }) => {
+    await ack();
+
+    const view = (body as any).view;
+    const values = view.state.values;
+    const entryMethod =
+      values.entry_method?.entry_method_input?.selected_option?.value || "manual";
+
+    await client.views.update({
+      view_id: view.id,
+      hash: view.hash,
+      view: {
+        ...buildCreateBillModal({
+          entryMethod: entryMethod as "manual" | "upload",
+        }),
+        private_metadata: view.private_metadata,
+      },
+    });
+  });
+
   // Dynamic modal update: when split_type changes, rebuild the modal
   app.action("split_type_input", async ({ ack, body, client }) => {
     await ack();
@@ -30,12 +51,17 @@ export function registerCreateHandlers(app: App): void {
     const values = view.state.values;
     const splitType =
       values.split_type?.split_type_input?.selected_option?.value || "equal";
+    const entryMethod =
+      values.entry_method?.entry_method_input?.selected_option?.value || "manual";
 
     await client.views.update({
       view_id: view.id,
       hash: view.hash,
       view: {
-        ...buildCreateBillModal({ splitType: splitType as "equal" | "item" }),
+        ...buildCreateBillModal({
+          entryMethod: entryMethod as "manual" | "upload",
+          splitType: splitType as "equal" | "item",
+        }),
         private_metadata: view.private_metadata,
       },
     });
@@ -55,25 +81,43 @@ export function registerCreateHandlers(app: App): void {
   app.view("create_bill_modal", async ({ ack, view, client, body }) => {
     const values = view.state.values;
 
-    // Check if a receipt image was uploaded
-    const fileData =
-      values.receipt_image?.receipt_image_input;
-    const files = (fileData as any)?.files as
-      | { id: string }[]
-      | undefined;
+    // Determine entry method (undefined in review modal)
+    const entryMethod =
+      values.entry_method?.entry_method_input?.selected_option?.value;
 
-    if (files && files.length > 0) {
-      // Image uploaded — hand off to OCR flow
+    if (entryMethod === "upload") {
+      // Upload flow — check for receipt image
+      const fileData = values.receipt_image?.receipt_image_input;
+      const files = (fileData as any)?.files as
+        | { id: string }[]
+        | undefined;
+
+      if (!files || files.length === 0) {
+        await ack({
+          response_action: "errors",
+          errors: { receipt_image: "Please upload a receipt image" },
+        });
+        return;
+      }
+
       await handleReceiptUpload(ack, view, client, body, files[0].id);
       return;
     }
 
-    // No image — existing manual flow
-    const billName = values.bill_name.bill_name_input.value!;
+    // Manual flow (or review modal where entry_method doesn't exist)
+    const billName = values.bill_name?.bill_name_input?.value || "";
     const splitType = values.split_type.split_type_input.selected_option!
       .value as "equal" | "item";
     const participantIds =
-      values.participants.participants_input.selected_users!;
+      values.participants?.participants_input?.selected_users || [];
+
+    if (!billName) {
+      await ack({
+        response_action: "errors",
+        errors: { bill_name: "Please enter a bill name" },
+      });
+      return;
+    }
 
     if (participantIds.length === 0) {
       await ack({
@@ -120,6 +164,13 @@ async function handleReceiptUpload(
 ): Promise<void> {
   const metadata = JSON.parse(view.private_metadata);
   const channelId = metadata.channel_id;
+  const values = view.state.values;
+
+  // Extract whatever the user filled in before OCR
+  const participantIds: string[] =
+    values.participants?.participants_input?.selected_users || [];
+  const userBillName: string =
+    values.bill_name?.bill_name_input?.value || "";
 
   // Show processing modal (keeps the modal alive while we work)
   await ack({
@@ -153,7 +204,8 @@ async function handleReceiptUpload(
     }
 
     // Build the review modal with pre-filled data
-    const billName = parsed.storeName || "";
+    // Prefer user-entered bill name over OCR store name
+    const billName = userBillName || parsed.storeName || "";
 
     if (hasItems) {
       // Item-based split with extracted items
@@ -166,6 +218,7 @@ async function handleReceiptUpload(
         splitType: "item",
         billName,
         itemsText,
+        selectedUsers: participantIds,
       });
 
       await client.views.update({
@@ -182,6 +235,7 @@ async function handleReceiptUpload(
         splitType: "equal",
         billName,
         totalAmount: String(parsed.total),
+        selectedUsers: participantIds,
       });
 
       await client.views.update({

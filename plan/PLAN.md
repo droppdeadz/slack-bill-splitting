@@ -61,10 +61,12 @@ Copter is a Slack bot focused on bill splitting and payment tracking. Create bil
 
 ## User Flows
 
-### Flow 1a: Creating a Bill (Equal Split)
+### Flow 1a: Creating a Bill (Equal Split — Manual Entry)
 ```
 User types: /copter create
-  -> Modal opens with form:
+  -> Modal opens: "How would you like to create this bill?"
+     - User selects: "Enter Manually"
+  -> Form shows (all required):
      - Bill name (e.g., "Taxi to airport")
      - Split type: Equal
      - Total amount (e.g., 400)
@@ -74,16 +76,32 @@ User types: /copter create
   -> Directly enters payment tracking phase
 ```
 
-### Flow 1b: Creating a Bill (Item-based Split)
+### Flow 1b: Creating a Bill (Item-based Split — Manual Entry)
 ```
 User types: /copter create
-  -> Modal opens with form:
+  -> Modal opens: "How would you like to create this bill?"
+     - User selects: "Enter Manually"
+  -> Form shows (all required):
      - Bill name (e.g., "Lunch at Sushi place")
      - Split type: Item-based
      - Items with costs (e.g., "Salmon Sushi ฿350", "Ramen ฿280", ...)
      - Participants: Select @users
   -> Bot posts bill card in channel (status: pending selection)
   -> Bot DMs each participant to select their items
+```
+
+### Flow 1c: Creating a Bill (Upload Receipt Image)
+```
+User types: /copter create
+  -> Modal opens: "How would you like to create this bill?"
+     - User selects: "Upload Receipt Image"
+  -> Form shows:
+     - Receipt Image (required)
+     - Bill Name (optional)
+     - Participants (optional)
+  -> User clicks "Scan Receipt"
+  -> OCR processes image → Review modal opens with pre-filled items
+  -> User reviews/edits and clicks "Create Bill"
 ```
 
 ### Flow 2: Selecting Items (Item-based split only)
@@ -306,10 +324,11 @@ copter/
 
 ### Phase 4: Bill Image Recognition — COMPLETED
 > Automatically read bills from uploaded images and pre-fill the create bill form. Uses tesseract.js for free, local OCR — no API keys or external services needed.
-- [x] Receipt/bill image upload in create modal — *Add optional `file_input` to the create bill modal*
+- [x] Receipt/bill image upload in create modal — *Entry method selector (radio buttons): "Enter Manually" or "Upload Receipt Image". Manual mode shows all fields as required. Upload mode shows receipt image (required), bill name (optional), and participants (optional).*
 - [x] OCR service — *New `receiptOcr.ts` using tesseract.js to extract raw text from receipt images (English + Thai)*
 - [x] Receipt text parser — *New `receiptParser.ts` to parse raw OCR text into structured data (store name, items with amounts, total) using regex*
 - [x] Auto-fill bill form from parsed data — *On submission with image: process → open new pre-filled review modal → user reviews/edits → submits into existing flow*
+- [x] Optimized image upload flow — *When uploading a receipt, all other fields (bill name, items/total, participants) are optional. User data entered alongside the image (participants, bill name) carries forward to the review modal. User-entered bill name takes priority over OCR store name.*
 
 ### Phase 5: Payment Integration — NOT STARTED
 - [ ] Integration with payment services (PromptPay QR, etc.) — *Generate PromptPay QR codes for easy payment, and optionally verify payments via e-Slip QR*

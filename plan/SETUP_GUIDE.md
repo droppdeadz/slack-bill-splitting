@@ -125,9 +125,12 @@ You should see:
 ## How It Works (For Non-Developers)
 
 ### Creating a Bill
-Type `/copter create` in any channel. A form pops up where you choose a split type:
-- **Equal** — Enter a total amount and select participants. Everyone pays the same and payment tracking starts immediately.
-- **Item-based** — Enter individual items with their costs (one per line, e.g. "Salmon Sushi 350") and select participants. The total is calculated automatically from the items. The bot DMs each participant with a checklist to select which items they owe for. Shared items are split equally among everyone who selects them. Once all participants have selected, the bill card shows a "Complete Calculation" button for the creator to finalize per-person amounts and begin payment tracking.
+Type `/copter create` in any channel. A form pops up where you first choose how to create the bill:
+
+- **Enter Manually** (default) — Fill in bill details yourself. All fields are required: bill name, split type, amount/items, and participants.
+  - *Equal split* — Enter a total amount and select participants. Everyone pays the same and payment tracking starts immediately.
+  - *Item-based split* — Enter individual items with their costs (one per line, e.g. "Salmon Sushi 350") and select participants. The total is calculated automatically from the items. The bot DMs each participant with a checklist to select which items they owe for. Shared items are split equally among everyone who selects them. Once all participants have selected, the bill card shows a "Complete Calculation" button for the creator to finalize per-person amounts and begin payment tracking.
+- **Upload Receipt Image** — Upload a receipt photo and click "Scan Receipt". Only the image is required; bill name and participants are optional. The bot scans the receipt and opens a review modal with items pre-filled. If you also entered a bill name or selected participants, those carry forward to the review modal.
 
 > **The bill creator is always included** as a participant automatically and their share is marked as paid — since they paid the bill upfront and are collecting from others.
 

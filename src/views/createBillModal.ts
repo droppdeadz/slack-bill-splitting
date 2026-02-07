@@ -3,6 +3,7 @@ type View = types.View;
 type KnownBlock = types.KnownBlock;
 
 export interface ModalOptions {
+  entryMethod?: "manual" | "upload";
   splitType?: "equal" | "item";
   isReview?: boolean;
   billName?: string;
@@ -12,6 +13,7 @@ export interface ModalOptions {
 }
 
 export function buildCreateBillModal(options?: ModalOptions): View {
+  const entryMethod = options?.entryMethod || "manual";
   const splitType = options?.splitType || "equal";
   const isReview = options?.isReview ?? false;
 
@@ -28,15 +30,69 @@ export function buildCreateBillModal(options?: ModalOptions): View {
     });
   }
 
-  // File input for receipt image (only on the initial form, not the review modal)
+  // Entry method selector (only on initial form, not review)
   if (!isReview) {
     blocks.push({
       type: "input",
-      block_id: "receipt_image",
-      optional: true,
+      block_id: "entry_method",
       label: {
         type: "plain_text",
-        text: "Receipt Image (optional)",
+        text: "How would you like to create this bill?",
+      },
+      element: {
+        type: "radio_buttons",
+        action_id: "entry_method_input",
+        initial_option:
+          entryMethod === "upload"
+            ? {
+                text: { type: "plain_text", text: "Upload Receipt Image" },
+                description: {
+                  type: "plain_text",
+                  text: "Scan a receipt photo to auto-fill items",
+                },
+                value: "upload",
+              }
+            : {
+                text: { type: "plain_text", text: "Enter Manually" },
+                description: {
+                  type: "plain_text",
+                  text: "Type in bill details yourself",
+                },
+                value: "manual",
+              },
+        options: [
+          {
+            text: { type: "plain_text", text: "Enter Manually" },
+            description: {
+              type: "plain_text",
+              text: "Type in bill details yourself",
+            },
+            value: "manual",
+          },
+          {
+            text: { type: "plain_text", text: "Upload Receipt Image" },
+            description: {
+              type: "plain_text",
+              text: "Scan a receipt photo to auto-fill items",
+            },
+            value: "upload",
+          },
+        ],
+      },
+      dispatch_action: true,
+    });
+  }
+
+  if (!isReview && entryMethod === "upload") {
+    // ── Upload mode ──
+    // Receipt image (required)
+    blocks.push({
+      type: "input",
+      block_id: "receipt_image",
+      optional: false,
+      label: {
+        type: "plain_text",
+        text: "Receipt Image",
       },
       hint: {
         type: "plain_text",
@@ -49,138 +105,202 @@ export function buildCreateBillModal(options?: ModalOptions): View {
         max_files: 1,
       } as any,
     });
-  }
 
-  // Bill name
-  const billNameElement: any = {
-    type: "plain_text_input",
-    action_id: "bill_name_input",
-    placeholder: {
-      type: "plain_text",
-      text: "e.g., Lunch at Sushi place",
-    },
-  };
-  if (options?.billName) {
-    billNameElement.initial_value = options.billName;
-  }
-
-  blocks.push({
-    type: "input",
-    block_id: "bill_name",
-    label: {
-      type: "plain_text",
-      text: "Bill Name",
-    },
-    element: billNameElement,
-  });
-
-  // Split type selector
-  blocks.push({
-    type: "input",
-    block_id: "split_type",
-    label: {
-      type: "plain_text",
-      text: "Split Type",
-    },
-    element: {
-      type: "static_select",
-      action_id: "split_type_input",
-      initial_option: {
-        text: {
-          type: "plain_text",
-          text: splitType === "item" ? "Item-based" : "Split Equally",
-        },
-        value: splitType,
-      },
-      options: [
-        {
-          text: { type: "plain_text", text: "Split Equally" },
-          value: "equal",
-        },
-        {
-          text: { type: "plain_text", text: "Item-based" },
-          value: "item",
-        },
-      ],
-    },
-    dispatch_action: true,
-  });
-
-  if (splitType === "equal") {
-    // Equal split: show total amount field
-    const totalElement: any = {
+    // Bill name (optional — will be extracted from receipt)
+    const billNameElement: any = {
       type: "plain_text_input",
-      action_id: "total_amount_input",
+      action_id: "bill_name_input",
       placeholder: {
         type: "plain_text",
-        text: "e.g., 1320",
+        text: "e.g., Lunch at Sushi place",
       },
     };
-    if (options?.totalAmount) {
-      totalElement.initial_value = options.totalAmount;
+    if (options?.billName) {
+      billNameElement.initial_value = options.billName;
     }
 
     blocks.push({
       type: "input",
-      block_id: "total_amount",
+      block_id: "bill_name",
+      optional: true,
       label: {
         type: "plain_text",
-        text: "Total Amount",
+        text: "Bill Name",
       },
-      element: totalElement,
-    });
-  } else {
-    // Item-based split: show items input
-    const itemsElement: any = {
-      type: "plain_text_input",
-      action_id: "items_input",
-      multiline: true,
-      placeholder: {
-        type: "plain_text",
-        text: "Salmon Sushi 350\nRamen 280\nGyoza 340\nGreen Tea x4 350",
-      },
-    };
-    if (options?.itemsText) {
-      itemsElement.initial_value = options.itemsText;
-    }
-
-    blocks.push({
-      type: "input",
-      block_id: "items",
-      label: {
-        type: "plain_text",
-        text: "Items (one per line: name amount)",
-      },
-      element: itemsElement,
       hint: {
         type: "plain_text",
-        text: "Enter each item on its own line. The last number on each line is the cost.",
+        text: "Leave blank to use the store name from the receipt.",
       },
+      element: billNameElement,
+    });
+
+    // Participants (optional — can be added in review modal)
+    const participantsElement: any = {
+      type: "multi_users_select",
+      action_id: "participants_input",
+      placeholder: {
+        type: "plain_text",
+        text: "Select people to split with",
+      },
+    };
+    if (options?.selectedUsers && options.selectedUsers.length > 0) {
+      participantsElement.initial_users = options.selectedUsers;
+    }
+
+    blocks.push({
+      type: "input",
+      block_id: "participants",
+      optional: true,
+      label: {
+        type: "plain_text",
+        text: "Participants",
+      },
+      element: participantsElement,
+    });
+  } else {
+    // ── Manual mode (or Review mode) ──
+
+    // Bill name (required)
+    const billNameElement: any = {
+      type: "plain_text_input",
+      action_id: "bill_name_input",
+      placeholder: {
+        type: "plain_text",
+        text: "e.g., Lunch at Sushi place",
+      },
+    };
+    if (options?.billName) {
+      billNameElement.initial_value = options.billName;
+    }
+
+    blocks.push({
+      type: "input",
+      block_id: "bill_name",
+      optional: false,
+      label: {
+        type: "plain_text",
+        text: "Bill Name",
+      },
+      element: billNameElement,
+    });
+
+    // Split type selector
+    blocks.push({
+      type: "input",
+      block_id: "split_type",
+      label: {
+        type: "plain_text",
+        text: "Split Type",
+      },
+      element: {
+        type: "static_select",
+        action_id: "split_type_input",
+        initial_option: {
+          text: {
+            type: "plain_text",
+            text: splitType === "item" ? "Item-based" : "Split Equally",
+          },
+          value: splitType,
+        },
+        options: [
+          {
+            text: { type: "plain_text", text: "Split Equally" },
+            value: "equal",
+          },
+          {
+            text: { type: "plain_text", text: "Item-based" },
+            value: "item",
+          },
+        ],
+      },
+      dispatch_action: true,
+    });
+
+    if (splitType === "equal") {
+      // Total amount (required)
+      const totalElement: any = {
+        type: "plain_text_input",
+        action_id: "total_amount_input",
+        placeholder: {
+          type: "plain_text",
+          text: "e.g., 1320",
+        },
+      };
+      if (options?.totalAmount) {
+        totalElement.initial_value = options.totalAmount;
+      }
+
+      blocks.push({
+        type: "input",
+        block_id: "total_amount",
+        optional: false,
+        label: {
+          type: "plain_text",
+          text: "Total Amount",
+        },
+        element: totalElement,
+      });
+    } else {
+      // Items input (required)
+      const itemsElement: any = {
+        type: "plain_text_input",
+        action_id: "items_input",
+        multiline: true,
+        placeholder: {
+          type: "plain_text",
+          text: "Salmon Sushi 350\nRamen 280\nGyoza 340\nGreen Tea x4 350",
+        },
+      };
+      if (options?.itemsText) {
+        itemsElement.initial_value = options.itemsText;
+      }
+
+      blocks.push({
+        type: "input",
+        block_id: "items",
+        optional: false,
+        label: {
+          type: "plain_text",
+          text: "Items (one per line: name amount)",
+        },
+        element: itemsElement,
+        hint: {
+          type: "plain_text",
+          text: "Enter each item on its own line. The last number on each line is the cost.",
+        },
+      });
+    }
+
+    // Participants (required)
+    const participantsElement: any = {
+      type: "multi_users_select",
+      action_id: "participants_input",
+      placeholder: {
+        type: "plain_text",
+        text: "Select people to split with",
+      },
+    };
+    if (options?.selectedUsers && options.selectedUsers.length > 0) {
+      participantsElement.initial_users = options.selectedUsers;
+    }
+
+    blocks.push({
+      type: "input",
+      block_id: "participants",
+      optional: false,
+      label: {
+        type: "plain_text",
+        text: "Participants",
+      },
+      element: participantsElement,
     });
   }
 
-  // Participants
-  const participantsElement: any = {
-    type: "multi_users_select",
-    action_id: "participants_input",
-    placeholder: {
-      type: "plain_text",
-      text: "Select people to split with",
-    },
-  };
-  if (options?.selectedUsers && options.selectedUsers.length > 0) {
-    participantsElement.initial_users = options.selectedUsers;
+  // Submit button text varies by mode
+  let submitText = "Create Bill";
+  if (!isReview && entryMethod === "upload") {
+    submitText = "Scan Receipt";
   }
-
-  blocks.push({
-    type: "input",
-    block_id: "participants",
-    label: {
-      type: "plain_text",
-      text: "Participants",
-    },
-    element: participantsElement,
-  });
 
   return {
     type: "modal",
@@ -191,7 +311,7 @@ export function buildCreateBillModal(options?: ModalOptions): View {
     },
     submit: {
       type: "plain_text",
-      text: "Create Bill",
+      text: submitText,
     },
     close: {
       type: "plain_text",

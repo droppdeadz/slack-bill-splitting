@@ -6,7 +6,7 @@ A Slack bot focused on bill splitting and payment tracking. Create bills, split 
 
 ## Features
 
-- `/copter create` — Open a form to create a new bill (equal split or item-based split). Optionally upload a receipt image to auto-fill items via OCR.
+- `/copter create` — Open a form to create a new bill. Choose between **Enter Manually** (type in bill details) or **Upload Receipt Image** (scan a receipt to auto-fill items via OCR). In manual mode all fields are required; in upload mode only the image is required and bill name/participants carry forward to the review modal.
 - `/copter list` — View all active bills in the current channel
 - `/copter me` — See your outstanding bills across all channels
 - `/copter history` — Browse completed and cancelled bills
