@@ -15,6 +15,8 @@ A Slack bot focused on bill splitting and payment tracking. Create bills, split 
 
 **Equal split** — Enter a total amount and participants. Everyone pays the same. Simple.
 
+> **Note:** The bill creator is always automatically included as a participant and marked as paid — they paid the bill upfront and collect from others.
+
 **Item-based split** — Enter individual items with costs and select participants:
 1. Bot **DMs each participant** to select which items they owe for
 2. Once everyone has selected, the **creator finalizes** the calculation
@@ -158,7 +160,7 @@ src/
 
 See [plan.md](plan.md) for the full implementation plan and roadmap.
 
-**Completed:** Equal split, item-based split (enter items + costs, participants self-select items via DM, creator finalizes calculation), payment confirmation flow with optional payment slip upload, bill management commands, manual & automatic reminders, list filters, DM for outstanding bills, full bill status lifecycle (pending/active/completed/cancelled).
+**Completed:** Equal split, item-based split (enter items + costs, participants self-select items via DM, creator finalizes calculation), payment confirmation flow with optional payment slip upload, bill management commands, manual & automatic reminders, list filters, DM for outstanding bills, full bill status lifecycle (pending/active/completed/cancelled), bill owner auto-included and auto-paid.
 
 **Coming next:** Bill image recognition (OCR to auto-fill items from receipt photos), payment integration (PromptPay QR).
 

@@ -4,6 +4,8 @@ import {
   getParticipantsByBill,
   haveAllParticipantsSelected,
   updateParticipantAmount,
+  updateParticipantStatus,
+  areAllParticipantsPaid,
 } from "../models/participant";
 import { getItemsByBill } from "../models/billItem";
 import { getDb } from "../database/connection";
@@ -73,8 +75,20 @@ export function registerCompleteCalcAction(app: App): void {
         updateParticipantAmount(participant.id, amount);
       }
 
-      // Move bill to active status
-      updateBillStatus(billId, "active");
+      // Auto-mark creator as paid (bill owner paid upfront)
+      const creatorParticipant = participants.find(
+        (p) => p.user_id === bill.creator_id
+      );
+      if (creatorParticipant) {
+        updateParticipantStatus(creatorParticipant.id, "paid");
+      }
+
+      // Move bill to active status (or completed if all paid)
+      if (areAllParticipantsPaid(billId)) {
+        updateBillStatus(billId, "completed");
+      } else {
+        updateBillStatus(billId, "active");
+      }
 
       // Refresh data and update the bill card
       const updatedBill = getBillById(billId)!;

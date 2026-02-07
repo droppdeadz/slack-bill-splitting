@@ -14,12 +14,14 @@ import { registerViewDetailsAction } from "./actions/viewDetails";
 import { registerSelectItemsAction } from "./actions/selectItems";
 import { registerCompleteCalcAction } from "./actions/completeCalc";
 import { startReminderScheduler } from "./scheduler/reminders";
-import { createBill, getBillById, updateBillMessageTs } from "./models/bill";
+import { createBill, getBillById, updateBillMessageTs, updateBillStatus } from "./models/bill";
 import {
   addParticipantsBulk,
   getParticipantsByBill,
   getParticipantById,
+  getParticipantByBillAndUser,
   updateParticipantStatus,
+  areAllParticipantsPaid,
 } from "./models/participant";
 import { addBillItemsBulk, getItemsByBill } from "./models/billItem";
 import { buildBillCard } from "./views/billCard";
@@ -187,6 +189,11 @@ app.view("create_bill_modal", async ({ ack, view, client, body }) => {
     const channelId = metadata.channel_id;
     const creatorId = body.user.id;
 
+    // Auto-include creator as participant (deduplicate)
+    if (!participantIds.includes(creatorId)) {
+      participantIds.push(creatorId);
+    }
+
     const bill = createBill({
       name: billName,
       totalAmount,
@@ -205,6 +212,12 @@ app.view("create_bill_modal", async ({ ack, view, client, body }) => {
 
     addParticipantsBulk(bill.id, participantData);
 
+    // Auto-mark creator as paid (bill owner paid upfront)
+    const creatorParticipant = getParticipantByBillAndUser(bill.id, creatorId);
+    if (creatorParticipant) {
+      updateParticipantStatus(creatorParticipant.id, "paid");
+    }
+
     const participants = getParticipantsByBill(bill.id);
     const freshBill = getBillById(bill.id)!;
 
@@ -216,6 +229,21 @@ app.view("create_bill_modal", async ({ ack, view, client, body }) => {
 
     if (result.ts) {
       updateBillMessageTs(bill.id, result.ts);
+    }
+
+    // Auto-complete if creator is the only participant
+    if (areAllParticipantsPaid(bill.id)) {
+      updateBillStatus(bill.id, "completed");
+      const completedBill = getBillById(bill.id)!;
+      const updatedParticipants = getParticipantsByBill(bill.id);
+      if (completedBill.message_ts) {
+        await client.chat.update({
+          channel: channelId,
+          ts: completedBill.message_ts,
+          blocks: buildBillCard(completedBill, updatedParticipants),
+          text: `Bill completed: ${billName}`,
+        });
+      }
     }
   } else {
     // ── Item-based split flow ──
@@ -248,6 +276,11 @@ app.view("create_bill_modal", async ({ ack, view, client, body }) => {
     const metadata = JSON.parse(view.private_metadata);
     const channelId = metadata.channel_id;
     const creatorId = body.user.id;
+
+    // Auto-include creator as participant (deduplicate)
+    if (!participantIds.includes(creatorId)) {
+      participantIds.push(creatorId);
+    }
 
     // Create bill in "pending" status
     const bill = createBill({

@@ -291,6 +291,13 @@ copter/
 - [x] Creator finalizes calculation — *Once all participants have selected items, creator is notified and clicks "Complete Calculation". Per-person amounts are computed and the bill moves to active payment tracking.*
 - [x] Bill status lifecycle — *Statuses: "pending" (waiting for item selections, item-based only), "active" (payment tracking), "completed", "cancelled". Bill card UI adapts to current status.*
 
+### Phase 3.5: Bill Owner Auto-Pay — COMPLETED
+- [x] Auto-include bill creator as participant — *Creator is always added to the participants list even if not explicitly selected*
+- [x] Auto-mark creator as paid on equal split — *Bill owner is automatically marked as "Paid" since they paid the bill upfront and collect from others*
+- [x] Auto-mark creator as paid after item-based calculation — *After "Complete Calculation", the creator's share is auto-marked as paid*
+- [x] Block "Mark as Paid" for bill owner — *If the bill owner clicks "Mark as Paid", they see a message that they don't need to pay*
+- [x] Auto-complete bill if creator is only participant — *Edge case: if no other participants, bill completes immediately*
+
 ### Phase 4: Bill Image Recognition — NOT STARTED
 > Automatically read bills from uploaded images and pre-fill the create bill form. Currently, the bill owner must enter all details manually.
 - [ ] Receipt/bill image upload in create modal — *Allow users to upload a photo of a receipt or bill*
@@ -424,5 +431,6 @@ pnpm dev
 1. **SQLite for MVP** - Zero setup, single file DB. Can migrate to PostgreSQL for production.
 2. **Socket Mode for dev** - No need for ngrok/public URL during development.
 3. **Creator confirms payments** - Since this is not connected to real banking, the bill creator acts as the "source of truth" for payment verification.
+6. **Creator auto-paid** - The bill creator is always included as a participant and auto-marked as paid. They paid the bill upfront and collect from others — no need to pay themselves.
 4. **Channel-scoped bills** - Bills are tied to channels for context, but users can see all their bills via `/copter me`.
 5. **Block Kit for rich UI** - Slack's Block Kit provides interactive buttons, modals, and rich formatting for a smooth in-Slack experience.

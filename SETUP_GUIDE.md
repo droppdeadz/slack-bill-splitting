@@ -129,8 +129,10 @@ Type `/copter create` in any channel. A form pops up where you choose a split ty
 - **Equal** — Enter a total amount and select participants. Everyone pays the same and payment tracking starts immediately.
 - **Item-based** — Enter individual items with their costs (one per line, e.g. "Salmon Sushi 350") and select participants. The total is calculated automatically from the items. The bot DMs each participant with a checklist to select which items they owe for. Shared items are split equally among everyone who selects them. Once all participants have selected, the bill card shows a "Complete Calculation" button for the creator to finalize per-person amounts and begin payment tracking.
 
+> **The bill creator is always included** as a participant automatically and their share is marked as paid — since they paid the bill upfront and are collecting from others.
+
 ### Paying a Bill
-Once a bill is in payment tracking, click the **"Mark as Paid"** button on the bill card. A popup lets you optionally attach a payment slip (photo or screenshot) — skip this if you paid with cash. The bill creator gets a DM with your payment slip (if attached) and buttons to confirm or reject.
+Once a bill is in payment tracking, click the **"Mark as Paid"** button on the bill card. A popup lets you optionally attach a payment slip (photo or screenshot) — skip this if you paid with cash. The bill creator gets a DM with your payment slip (if attached) and buttons to confirm or reject. (The bill owner cannot use "Mark as Paid" since they are already marked as paid.)
 
 ### Getting Reminders
 The bill creator can click **"Manage Bill"** → **"Remind All"** to send DM reminders to everyone who hasn't paid yet. Only the bill creator sees the manage options. The bot also sends automatic daily reminders at 9 AM.
