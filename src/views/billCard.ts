@@ -3,6 +3,8 @@ type KnownBlock = types.KnownBlock;
 import type { Bill } from "../models/bill";
 import type { Participant } from "../models/participant";
 import type { BillItem } from "../models/billItem";
+import type { PaymentMethod } from "../models/paymentMethod";
+import { hasPromptPay, hasBankAccount } from "../models/paymentMethod";
 import { formatCurrency, progressBar } from "../utils/formatCurrency";
 
 export interface ItemBreakdown {
@@ -14,12 +16,13 @@ export function buildBillCard(
   bill: Bill,
   participants: Participant[],
   items?: BillItem[],
-  itemBreakdowns?: Map<string, ItemBreakdown[]>
+  itemBreakdowns?: Map<string, ItemBreakdown[]>,
+  creatorPaymentMethod?: PaymentMethod
 ): KnownBlock[] {
   if (bill.status === "pending" && bill.split_type === "item") {
     return buildPendingItemCard(bill, participants, items || []);
   }
-  return buildActiveCard(bill, participants, itemBreakdowns, items);
+  return buildActiveCard(bill, participants, itemBreakdowns, items, creatorPaymentMethod);
 }
 
 function buildPendingItemCard(
@@ -122,7 +125,8 @@ function buildActiveCard(
   bill: Bill,
   participants: Participant[],
   itemBreakdowns?: Map<string, ItemBreakdown[]>,
-  items?: BillItem[]
+  items?: BillItem[],
+  creatorPaymentMethod?: PaymentMethod
 ): KnownBlock[] {
   const paidAmount = participants
     .filter((p) => p.status === "paid")
@@ -222,24 +226,46 @@ function buildActiveCard(
 
   // Add action buttons only for active bills
   if (bill.status === "active") {
+    const actionElements: any[] = [];
+
+    // Payment buttons based on creator's payment methods
+    if (creatorPaymentMethod && hasPromptPay(creatorPaymentMethod)) {
+      actionElements.push({
+        type: "button",
+        text: { type: "plain_text", text: "Pay via PromptPay" },
+        action_id: "pay_via_promptpay",
+        value: bill.id,
+      });
+    }
+    if (creatorPaymentMethod && hasBankAccount(creatorPaymentMethod)) {
+      actionElements.push({
+        type: "button",
+        text: { type: "plain_text", text: "Payment Info" },
+        action_id: "payment_info",
+        value: bill.id,
+      });
+    }
+
+    actionElements.push(
+      {
+        type: "button",
+        text: { type: "plain_text", text: "Mark as Paid" },
+        style: "primary",
+        action_id: "mark_paid",
+        value: bill.id,
+      },
+      {
+        type: "button",
+        text: { type: "plain_text", text: "Manage Bill" },
+        action_id: "manage_bill",
+        value: bill.id,
+      }
+    );
+
     blocks.push({
       type: "actions",
       block_id: `bill_actions_${bill.id}`,
-      elements: [
-        {
-          type: "button",
-          text: { type: "plain_text", text: "Mark as Paid" },
-          style: "primary",
-          action_id: "mark_paid",
-          value: bill.id,
-        },
-        {
-          type: "button",
-          text: { type: "plain_text", text: "Manage Bill" },
-          action_id: "manage_bill",
-          value: bill.id,
-        },
-      ],
+      elements: actionElements,
     });
   } else {
     const statusLabel =

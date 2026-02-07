@@ -9,6 +9,7 @@ import {
 } from "../models/participant";
 import { getItemsByBill } from "../models/billItem";
 import { getAllSelectionsByBill, getItemBreakdownsByParticipant } from "../models/itemSelection";
+import { getPaymentMethodByUser } from "../models/paymentMethod";
 import { buildBillCard } from "../views/billCard";
 import { calculateItemSplits } from "../utils/splitCalculator";
 
@@ -85,12 +86,13 @@ export function registerCompleteCalcAction(app: App): void {
       const updatedBill = getBillById(billId)!;
       const updatedParticipants = getParticipantsByBill(billId);
       const breakdowns = getItemBreakdownsByParticipant(billId);
+      const creatorPm = getPaymentMethodByUser(bill.creator_id);
 
       if (updatedBill.message_ts) {
         await client.chat.update({
           channel: updatedBill.channel_id,
           ts: updatedBill.message_ts,
-          blocks: buildBillCard(updatedBill, updatedParticipants, items, breakdowns),
+          blocks: buildBillCard(updatedBill, updatedParticipants, items, breakdowns, creatorPm),
           text: `Bill finalized: ${updatedBill.name}`,
         });
       }

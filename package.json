@@ -14,7 +14,12 @@
     "@slack/bolt": "^4.1.0",
     "better-sqlite3": "^12.0.0",
     "dotenv": "^16.4.7",
+    "jsqr": "^1.4.0",
     "node-cron": "^3.0.3",
+    "promptparse": "^1.5.0",
+    "promptpay-qr": "^0.5.0",
+    "qrcode": "^1.5.4",
+    "sharp": "^0.34.5",
     "tesseract.js": "^7.0.0",
     "uuid": "^11.0.5"
   },
@@ -22,6 +27,7 @@
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.0",
     "@types/node-cron": "^3.0.11",
+    "@types/qrcode": "^1.5.6",
     "@types/uuid": "^10.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
@@ -32,7 +38,8 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "better-sqlite3",
-      "esbuild"
+      "esbuild",
+      "sharp"
     ]
   },
   "packageManager": "pnpm@10.28.2+sha512.41872f037ad22f7348e3b1debbaf7e867cfd448f2726d9cf74c08f19507c31d2c8e7a11525b983febc2df640b5438dee6023ebb1f84ed43cc2d654d2bc326264"

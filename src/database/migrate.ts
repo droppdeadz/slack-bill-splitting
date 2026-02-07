@@ -11,6 +11,20 @@ const migrations: { name: string; up: string }[] = [
     name: "001_add_has_selected_to_participants",
     up: `ALTER TABLE participants ADD COLUMN has_selected INTEGER NOT NULL DEFAULT 0`,
   },
+  {
+    name: "002_create_payment_methods",
+    up: `CREATE TABLE IF NOT EXISTS payment_methods (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL UNIQUE,
+      promptpay_type TEXT,
+      promptpay_id TEXT,
+      bank_name TEXT,
+      bank_account_number TEXT,
+      bank_account_name TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+  },
 ];
 
 export function runMigrations(): void {

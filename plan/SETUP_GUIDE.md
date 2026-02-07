@@ -34,6 +34,7 @@
    - `chat:write.public` — Send messages to channels the bot isn't in
    - `commands` — Add slash commands
    - `files:read` — Read uploaded payment slips and receipt images for OCR
+   - `files:write` — Upload PromptPay QR code images
    - `im:write` — Send direct messages (reminders & the `me` subcommand)
    - `users:read` — Read user display names
 
@@ -46,7 +47,7 @@
 3. Fill in:
    - **Command:** Any name you like (e.g. `/split`, `/bill`)
    - **Short Description:** `Split bills and collect money from your team`
-   - **Usage Hint:** `[create | list [all|mine|owed] | me | history | help]`
+   - **Usage Hint:** `[create | list [all|mine|owed] | me | history | payment | help]`
 4. Click **"Save"**
 5. **Important:** Set the `SLASH_COMMAND` env var to match the command name you chose (without the `/`). For example, if you created `/split`, set `SLASH_COMMAND=split`.
 
@@ -142,6 +143,16 @@ Once a bill is in payment tracking, click the **"Mark as Paid"** button on the b
 
 ### Getting Reminders
 The bill creator can click **"Manage Bill"** → **"Remind All"** to send DM reminders to everyone who hasn't paid yet. Only the bill creator sees the manage options. The bot also sends automatic daily reminders at 9 AM.
+
+### Setting Up Payment Methods
+Type `/<command> payment` to save your payment details. You can set up:
+- **PromptPay** — Select a type (phone, national ID, or e-Wallet) and enter your ID. When you create a bill, participants will see a "Pay via PromptPay" button that generates a QR code they can scan with their banking app.
+- **Bank Account** — Select your bank, enter your account number and holder name. Participants will see a "Payment Info" button showing your bank details for direct transfer.
+
+Both are optional — set up one or both. Your details are saved and pre-filled when you run the command again.
+
+### Slip Verification (Optional)
+If the bot admin sets the `OPENSLIPVERIFY_API_KEY` environment variable, uploaded payment slips are automatically verified. The bot reads the QR code on the slip, checks it against the [OpenSlipVerify](https://openslipverify.com) API, and shows verification results to the bill creator alongside the confirm/reject buttons. If verification is unavailable, the manual flow works as usual.
 
 ### Checking Your Bills
 - `/<command> me` — Get a DM with all bills you still owe

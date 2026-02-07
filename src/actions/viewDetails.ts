@@ -3,6 +3,7 @@ import { getBillById } from "../models/bill";
 import { getParticipantsByBill } from "../models/participant";
 import { getItemsByBill } from "../models/billItem";
 import { getItemBreakdownsByParticipant } from "../models/itemSelection";
+import { getPaymentMethodByUser } from "../models/paymentMethod";
 import { buildBillCard } from "../views/billCard";
 
 export function registerViewDetailsAction(app: App): void {
@@ -27,12 +28,13 @@ export function registerViewDetailsAction(app: App): void {
     const breakdowns = bill.split_type === "item"
       ? getItemBreakdownsByParticipant(billId)
       : undefined;
+    const creatorPm = getPaymentMethodByUser(bill.creator_id);
 
     // Show full bill card as ephemeral to the user
     await client.chat.postEphemeral({
       channel: body.channel?.id || "",
       user: userId,
-      blocks: buildBillCard(bill, participants, items, breakdowns),
+      blocks: buildBillCard(bill, participants, items, breakdowns, creatorPm),
       text: `Bill details: ${bill.name}`,
     });
   });

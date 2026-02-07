@@ -158,6 +158,8 @@ Creator clicks "Remind All" on bill card
 | Database       | SQLite (via better-sqlite3) for simplicity, easily swappable to PostgreSQL |
 | Scheduler      | node-cron (for automatic reminders) |
 | OCR            | tesseract.js (local receipt scanning, no API key needed) |
+| QR Code        | promptpay-qr + qrcode (PromptPay QR generation)  |
+| Slip Verify    | jsQR + sharp + promptparse + OpenSlipVerify API   |
 | Package Manager| pnpm                              |
 
 ---
@@ -181,31 +183,38 @@ slack-bill-splitting/
 │   │   ├── bill.ts             # Bill CRUD operations
 │   │   ├── billItem.ts         # Bill item CRUD operations
 │   │   ├── participant.ts      # Participant CRUD operations
-│   │   └── itemSelection.ts    # Item selection CRUD operations
+│   │   ├── itemSelection.ts    # Item selection CRUD operations
+│   │   └── paymentMethod.ts    # Payment method CRUD (PromptPay + bank account)
 │   ├── commands/
 │   │   ├── create.ts           # /<command> create — modal, submission & bill creation
 │   │   ├── list.ts             # /<command> list
 │   │   ├── me.ts               # /<command> me
-│   │   └── history.ts          # /<command> history
+│   │   ├── history.ts          # /<command> history
+│   │   └── payment.ts          # /<command> payment — payment method setup
 │   ├── actions/
-│   │   ├── markPaid.ts         # "Mark as Paid" button + modal submission handler
+│   │   ├── markPaid.ts         # "Mark as Paid" button + modal submission + slip verification
 │   │   ├── confirmPayment.ts   # Creator confirms/rejects payment
 │   │   ├── selectItems.ts      # Participant selects items via DM
 │   │   ├── completeCalc.ts     # Creator finalizes bill calculation
 │   │   ├── manageBill.ts       # "Manage Bill" button → creator-only modal
 │   │   ├── remindAll.ts        # "Remind All" action handler (from modal)
 │   │   ├── cancelBill.ts       # "Cancel Bill" action handler (from modal)
-│   │   └── viewDetails.ts      # "View Details" button handler
+│   │   ├── viewDetails.ts      # "View Details" button handler
+│   │   └── paymentInfo.ts      # "Pay via PromptPay" & "Payment Info" button handlers
 │   ├── views/
 │   │   ├── createBillModal.ts  # Modal form for creating bill (items + participants)
 │   │   ├── markPaidModal.ts    # Modal for marking as paid with optional slip upload
 │   │   ├── billCard.ts         # Bill card Block Kit message (pending/active states)
 │   │   ├── itemSelectMessage.ts # DM item selection checklist for participants
 │   │   ├── reminderMessage.ts  # DM reminder message
-│   │   └── resultModal.ts      # Shared result modal for manage bill actions
+│   │   ├── resultModal.ts      # Shared result modal for manage bill actions
+│   │   ├── paymentModal.ts     # Modal for setting up payment methods
+│   │   └── paymentInfoMessage.ts # Ephemeral messages for PromptPay QR & bank info
 │   ├── services/
 │   │   ├── receiptOcr.ts       # tesseract.js OCR wrapper for receipt images
-│   │   └── receiptParser.ts    # Regex parser: raw OCR text → structured receipt data
+│   │   ├── receiptParser.ts    # Regex parser: raw OCR text → structured receipt data
+│   │   ├── promptPayQr.ts      # PromptPay QR code generation (PNG buffer)
+│   │   └── slipVerify.ts       # Slip verification via jsQR + OpenSlipVerify API
 │   ├── scheduler/
 │   │   └── reminders.ts        # Cron job for auto-reminders
 │   └── utils/
@@ -263,6 +272,19 @@ slack-bill-splitting/
 | participant_id | TEXT (FK) | Reference to participants      |
 | created_at     | DATETIME  | Timestamp                      |
 
+### `payment_methods` table
+| Column              | Type      | Description                                 |
+|---------------------|-----------|---------------------------------------------|
+| id                  | TEXT (PK) | UUID                                        |
+| user_id             | TEXT (UQ) | Slack user ID (one row per user)            |
+| promptpay_type      | TEXT      | "phone", "national_id", "ewallet", or null  |
+| promptpay_id        | TEXT      | PromptPay ID (null if no PromptPay)         |
+| bank_name           | TEXT      | e.g., "KBank" (null if no bank account)     |
+| bank_account_number | TEXT      | Account number (null if no bank account)    |
+| bank_account_name   | TEXT      | Account holder name (null if no bank)       |
+| created_at          | DATETIME  | Timestamp                                   |
+| updated_at          | DATETIME  | Timestamp                                   |
+
 > **Calculation:** When the creator finalizes, each item's cost is divided equally among all participants who selected it. A participant's total is the sum of their shares across all selected items.
 
 ---
@@ -274,7 +296,8 @@ slack-bill-splitting/
 - `chat:write` - Send and update messages
 - `im:write` - Send DMs for reminders
 - `users:read` - Get user display names
-- `files:read` - Read uploaded payment slips
+- `files:read` - Read uploaded payment slips and receipt images
+- `files:write` - Upload PromptPay QR code images
 
 ### Slash Command
 - Configurable via `SLASH_COMMAND` env var (default: `slack-bill-splitting`) — must match the command created at https://api.slack.com/apps
@@ -330,8 +353,14 @@ slack-bill-splitting/
 - [x] Auto-fill bill form from parsed data — *On submission with image: process → open new pre-filled review modal → user reviews/edits → submits into existing flow*
 - [x] Optimized image upload flow — *When uploading a receipt, all other fields (bill name, items/total, participants) are optional. User data entered alongside the image (participants, bill name) carries forward to the review modal. User-entered bill name takes priority over OCR store name.*
 
-### Phase 5: Payment Integration — NOT STARTED
-- [ ] Integration with payment services (PromptPay QR, etc.) — *Generate PromptPay QR codes for easy payment, and optionally verify payments via e-Slip QR*
+### Phase 5: Payment Integration — COMPLETED
+> Payment method management, PromptPay QR generation, bank account info display, and slip verification via OpenSlipVerify.
+- [x] `/<command> payment` command — *Modal to save PromptPay (type + ID) and/or bank account (bank, account number, holder name). Single row per user, both methods optional. Pre-fills on re-open.*
+- [x] Bill card payment buttons — *Active bill cards conditionally show "Pay via PromptPay" (if creator has PromptPay) and/or "Payment Info" (if creator has bank account) before the existing "Mark as Paid" and "Manage Bill" buttons.*
+- [x] PromptPay QR generation — *Clicking "Pay via PromptPay" generates a QR code (via promptpay-qr + qrcode) with the participant's amount, uploads it to Slack, and shows it as an ephemeral message.*
+- [x] Bank account info display — *Clicking "Payment Info" shows bank name, masked account number (last 4 digits), and holder name as an ephemeral message.*
+- [x] Slip verification via OpenSlipVerify — *When a payment slip image is uploaded via "Mark as Paid" and `OPENSLIPVERIFY_API_KEY` is set: extracts QR from the slip (jsQR + sharp), parses the transaction ref (promptparse), calls OpenSlipVerify API, and includes verification results in the creator's DM notification. Falls back gracefully if QR extraction fails or API is unavailable.*
+- [x] Edge case handling — *Creator can't click their own payment buttons. Non-participants get an error. Already-paid participants get a notification.*
 
 ---
 
@@ -424,6 +453,7 @@ DATABASE_PATH=./data/bills.db
 DEFAULT_CURRENCY=THB
 REMINDER_CRON=0 9 * * *    # Daily at 9 AM
 SLASH_COMMAND=slack-bill-splitting  # Must match command name in Slack app config
+OPENSLIPVERIFY_API_KEY=     # Optional: API key for slip verification (https://openslipverify.com)
 ```
 
 ---

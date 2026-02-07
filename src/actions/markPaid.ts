@@ -7,6 +7,7 @@ import {
 } from "../models/participant";
 import { buildMarkPaidModal } from "../views/markPaidModal";
 import { formatCurrency } from "../utils/formatCurrency";
+import { verifySlip, type SlipVerifyResult } from "../services/slipVerify";
 
 export function registerMarkPaidAction(app: App): void {
   // "Mark as Paid" button handler
@@ -123,6 +124,16 @@ export function registerMarkPaidAction(app: App): void {
           },
         });
       }
+
+      // Attempt slip verification via OpenSlipVerify
+      const verifyResult = await verifySlip(
+        slipFile.id,
+        participant.amount,
+        client
+      );
+      if (verifyResult) {
+        blocks.push(buildVerificationBlock(verifyResult));
+      }
     }
 
     blocks.push({
@@ -164,4 +175,34 @@ export function registerMarkPaidAction(app: App): void {
       // Ephemeral may fail if the channel context is unavailable (e.g., modal opened from DM)
     }
   });
+}
+
+function buildVerificationBlock(result: SlipVerifyResult): any {
+  if (result.success) {
+    const details = [
+      result.transRef ? `Ref: \`${result.transRef}\`` : null,
+      result.amount ? `Amount: ${result.amount}` : null,
+      result.senderName ? `From: ${result.senderName}` : null,
+      result.receiverName ? `To: ${result.receiverName}` : null,
+      result.date ? `Date: ${result.date}` : null,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+
+    return {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `:white_check_mark: *Slip verified*\n${details}`,
+      },
+    };
+  }
+
+  return {
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: `:warning: *Slip verification inconclusive*\n${result.error || "Could not verify this slip automatically."}`,
+    },
+  };
 }

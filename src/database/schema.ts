@@ -56,6 +56,20 @@ export function initializeDatabase(): void {
     CREATE INDEX IF NOT EXISTS idx_participants_user ON participants(user_id);
     CREATE INDEX IF NOT EXISTS idx_item_selections_item ON item_selections(bill_item_id);
     CREATE INDEX IF NOT EXISTS idx_item_selections_participant ON item_selections(participant_id);
+
+    CREATE TABLE IF NOT EXISTS payment_methods (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL UNIQUE,
+      promptpay_type TEXT,
+      promptpay_id TEXT,
+      bank_name TEXT,
+      bank_account_number TEXT,
+      bank_account_name TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_payment_methods_user ON payment_methods(user_id);
   `);
 
   console.log("[DB] Database initialized successfully");

@@ -9,6 +9,7 @@ import {
 } from "../models/participant";
 import { addBillItemsBulk, getItemsByBill } from "../models/billItem";
 import { buildBillCard } from "../views/billCard";
+import { getPaymentMethodByUser } from "../models/paymentMethod";
 import { buildItemSelectDM } from "../views/itemSelectMessage";
 import { splitEqual } from "../utils/splitCalculator";
 import {
@@ -330,10 +331,11 @@ async function handleEqualSplit(
 
   const participants = getParticipantsByBill(bill.id);
   const freshBill = getBillById(bill.id)!;
+  const creatorPm = getPaymentMethodByUser(creatorId);
 
   const result = await client.chat.postMessage({
     channel: channelId,
-    blocks: buildBillCard(freshBill, participants),
+    blocks: buildBillCard(freshBill, participants, undefined, undefined, creatorPm),
     text: `New bill: ${billName} - ${totalAmount}`,
   });
 
@@ -350,7 +352,7 @@ async function handleEqualSplit(
       await client.chat.update({
         channel: channelId,
         ts: completedBill.message_ts,
-        blocks: buildBillCard(completedBill, updatedParticipants),
+        blocks: buildBillCard(completedBill, updatedParticipants, undefined, undefined, creatorPm),
         text: `Bill completed: ${billName}`,
       });
     }
@@ -423,7 +425,7 @@ async function handleItemSplit(
   const participants = getParticipantsByBill(bill.id);
   const freshBill = getBillById(bill.id)!;
 
-  // Post bill card in channel (pending state)
+  // Post bill card in channel (pending state — no payment buttons needed)
   const result = await client.chat.postMessage({
     channel: channelId,
     blocks: buildBillCard(freshBill, participants, billItems),

@@ -3,6 +3,7 @@ import { getBillById, updateBillStatus } from "../models/bill";
 import { getParticipantsByBill } from "../models/participant";
 import { getItemsByBill } from "../models/billItem";
 import { getItemBreakdownsByParticipant } from "../models/itemSelection";
+import { getPaymentMethodByUser } from "../models/paymentMethod";
 import { buildBillCard } from "../views/billCard";
 import { buildResultModal } from "../views/resultModal";
 
@@ -59,12 +60,13 @@ export function registerCancelBillAction(app: App): void {
     const breakdowns = updatedBill.split_type === "item"
       ? getItemBreakdownsByParticipant(billId)
       : undefined;
+    const creatorPm = getPaymentMethodByUser(updatedBill.creator_id);
 
     if (updatedBill.message_ts) {
       await client.chat.update({
         channel: updatedBill.channel_id,
         ts: updatedBill.message_ts,
-        blocks: buildBillCard(updatedBill, participants, items, breakdowns),
+        blocks: buildBillCard(updatedBill, participants, items, breakdowns, creatorPm),
         text: `Bill cancelled: ${updatedBill.name}`,
       });
     }

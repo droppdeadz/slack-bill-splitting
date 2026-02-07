@@ -14,6 +14,8 @@ import { registerManageBillAction } from "./actions/manageBill";
 import { registerViewDetailsAction } from "./actions/viewDetails";
 import { registerSelectItemsAction } from "./actions/selectItems";
 import { registerCompleteCalcAction } from "./actions/completeCalc";
+import { registerPaymentHandlers, openPaymentModal } from "./commands/payment";
+import { registerPaymentInfoAction } from "./actions/paymentInfo";
 import { startReminderScheduler } from "./scheduler/reminders";
 import { buildCreateBillModal } from "./views/createBillModal";
 
@@ -70,6 +72,11 @@ app.command(`/${cmd}`, async ({ command, ack, client, body }) => {
       await handleHistoryCommand(client, command.channel_id, command.user_id);
       break;
 
+    case "payment":
+      await ack();
+      await openPaymentModal(client, body.trigger_id, command.user_id);
+      break;
+
     case "help":
     default:
       await ack();
@@ -93,12 +100,13 @@ app.command(`/${cmd}`, async ({ command, ack, client, body }) => {
                 `\`/${cmd} list [all|mine|owed]\` — View active bills in this channel`,
                 `\`/${cmd} me\` — View your outstanding bills (sent as DM)`,
                 `\`/${cmd} history\` — View completed/cancelled bills`,
+                `\`/${cmd} payment\` — Set up your payment methods (PromptPay / bank account)`,
                 `\`/${cmd} help\` — Show this help message`,
               ].join("\n"),
             },
           },
         ],
-        text: `${cmd} commands: create, list, me, history, help`,
+        text: `${cmd} commands: create, list, me, history, payment, help`,
       });
       break;
   }
@@ -114,6 +122,8 @@ registerManageBillAction(app);
 registerViewDetailsAction(app);
 registerSelectItemsAction(app);
 registerCompleteCalcAction(app);
+registerPaymentHandlers(app);
+registerPaymentInfoAction(app);
 
 // ── Scheduler ─────────────────────────────────────
 startReminderScheduler(app);
@@ -122,5 +132,5 @@ startReminderScheduler(app);
 (async () => {
   await app.start(config.port);
   console.log(`⚡ Slack Bill Splitting bot is running on port ${config.port}`);
-  console.log(`   Commands: /${cmd} [create|list|me|history|help]`);
+  console.log(`   Commands: /${cmd} [create|list|me|history|payment|help]`);
 })();
