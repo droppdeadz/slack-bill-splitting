@@ -10,3 +10,4 @@ data/*.db-wal
 eng.traineddata
 tha.traineddata
 *.traineddata
+.DS_Store
