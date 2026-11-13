@@ -1,5 +1,11 @@
 import { v4 as uuidv4 } from "uuid";
 import { getDb } from "../database/connection";
+import { getItemsByBill } from "./billItem";
+import {
+  calculateItemSplits,
+  type ItemSplitResult,
+  type ShareLine,
+} from "../utils/splitCalculator";
 
 export function setSelectionsForParticipant(
   participantId: string,
@@ -42,41 +48,35 @@ export function getAllSelectionsByBill(
 }
 
 /**
+ * Calculate Shares, per-participant breakdowns and Unselected Items for an
+ * Item-based Bill from its current Selections.
+ */
+export function getItemSplitForBill(billId: string): ItemSplitResult {
+  const db = getDb();
+  const creator = db
+    .prepare(
+      `SELECT p.id FROM participants p
+       JOIN bills b ON b.id = p.bill_id
+       WHERE p.bill_id = ? AND p.user_id = b.creator_id`
+    )
+    .get(billId) as { id: string } | undefined;
+  if (!creator) {
+    throw new Error(`Bill ${billId} has no Creator participant`);
+  }
+
+  return calculateItemSplits(
+    getItemsByBill(billId),
+    getAllSelectionsByBill(billId),
+    creator.id
+  );
+}
+
+/**
  * Get per-participant item breakdowns for a bill.
- * Returns a map of participantId → list of { name, amount (their share) }.
+ * Returns a map of participantId → the lines that make up their Share.
  */
 export function getItemBreakdownsByParticipant(
   billId: string
-): Map<string, { name: string; amount: number }[]> {
-  const db = getDb();
-  const rows = db
-    .prepare(
-      `SELECT s.participant_id, bi.name, bi.amount,
-              (SELECT COUNT(*) FROM item_selections s2 WHERE s2.bill_item_id = s.bill_item_id) as selector_count
-       FROM item_selections s
-       JOIN bill_items bi ON s.bill_item_id = bi.id
-       JOIN participants p ON s.participant_id = p.id
-       WHERE p.bill_id = ?
-       ORDER BY bi.created_at`
-    )
-    .all(billId) as {
-    participant_id: string;
-    name: string;
-    amount: number;
-    selector_count: number;
-  }[];
-
-  const map = new Map<string, { name: string; amount: number }[]>();
-  for (const row of rows) {
-    const shareAmount =
-      Math.round((row.amount / row.selector_count) * 100) / 100;
-    if (!map.has(row.participant_id)) {
-      map.set(row.participant_id, []);
-    }
-    map.get(row.participant_id)!.push({
-      name: row.name,
-      amount: shareAmount,
-    });
-  }
-  return map;
+): Map<string, ShareLine[]> {
+  return getItemSplitForBill(billId).breakdowns;
 }

@@ -7,10 +7,31 @@ import type { BillItem } from "../models/billItem";
 import type { PaymentMethod } from "../models/paymentMethod";
 import { hasPromptPay, hasBankAccount } from "../models/paymentMethod";
 import { formatCurrency, progressBar } from "../utils/formatCurrency";
+import type { ShareLine } from "../utils/splitCalculator";
 
-export interface ItemBreakdown {
-  name: string;
-  amount: number;
+export type ItemBreakdown = ShareLine;
+
+/** "Gyoza ฿340, Water ฿20" */
+export function formatUnselectedItems(
+  items: { name: string; amount: number }[],
+  currency: string
+): string {
+  return items
+    .map((item) => `${item.name} ${formatCurrency(item.amount, currency)}`)
+    .join(", ");
+}
+
+const PARTICIPANT_STATUS: Record<Participant["status"], { emoji: string; label: string }> = {
+  paid: { emoji: ":white_check_mark:", label: "Paid" },
+  awaiting_confirmation: { emoji: ":hourglass_flowing_sand:", label: "Awaiting confirmation" },
+  unpaid: { emoji: ":red_circle:", label: "Unpaid" },
+};
+
+function formatBreakdownLine(line: ItemBreakdown, currency: string): string {
+  const amount = `\`${formatCurrency(line.amount, currency)}\``;
+  if (line.kind === "unselected") return `_Unselected:_ ${line.name} ${amount}`;
+  if (line.kind === "rounding") return `_Rounding_ ${amount}`;
+  return `${line.name} ${amount}`;
 }
 
 export function buildBillCard(
@@ -20,13 +41,13 @@ export function buildBillCard(
   itemBreakdowns?: Map<string, ItemBreakdown[]>,
   creatorPaymentMethod?: PaymentMethod
 ): KnownBlock[] {
-  if (bill.status === "pending" && bill.split_type === "item") {
-    return buildPendingItemCard(bill, participants, items || []);
+  if (bill.status === "awaiting_selection" && bill.split_type === "item") {
+    return buildAwaitingSelectionCard(bill, participants, items || []);
   }
   return buildActiveCard(bill, participants, itemBreakdowns, items, creatorPaymentMethod);
 }
 
-function buildPendingItemCard(
+function buildAwaitingSelectionCard(
   bill: Bill,
   participants: Participant[],
   items: BillItem[]
@@ -83,15 +104,15 @@ function buildPendingItemCard(
     },
   ];
 
-  // Show "Complete Calculation" if all have selected, otherwise just "Cancel Bill"
+  // Show "Finalize Shares" once everyone has selected
   const actionElements: ActionsBlockElement[] = [];
 
   if (selectedCount === totalCount && totalCount > 0) {
     actionElements.push({
       type: "button",
-      text: { type: "plain_text", text: "Complete Calculation" },
+      text: { type: "plain_text", text: "Finalize Shares" },
       style: "primary",
-      action_id: "complete_calculation",
+      action_id: "finalize_shares",
       value: bill.id,
     });
   }
@@ -137,12 +158,6 @@ function buildActiveCard(
     ? `Item-based split (${participants.length} people)`
     : `Split equally (${participants.length} people)`;
 
-  const statusEmoji: Record<string, string> = {
-    paid: ":white_check_mark:",
-    pending: ":hourglass_flowing_sand:",
-    unpaid: ":red_circle:",
-  };
-
   const blocks: KnownBlock[] = [
     {
       type: "header",
@@ -181,9 +196,7 @@ function buildActiveCard(
 
   // Build participant sections
   for (const p of participants) {
-    const emoji = statusEmoji[p.status];
-    const statusText =
-      p.status.charAt(0).toUpperCase() + p.status.slice(1);
+    const { emoji, label: statusText } = PARTICIPANT_STATUS[p.status];
     const isCreator = p.user_id === bill.creator_id;
     const creatorBadge = isCreator ? " :crown:" : "";
 
@@ -195,9 +208,7 @@ function buildActiveCard(
       const breakdown = itemBreakdowns.get(p.id);
       if (breakdown && breakdown.length > 0) {
         const itemList = breakdown
-          .map(
-            (item) => `${item.name} \`${formatCurrency(item.amount, bill.currency)}\``
-          )
+          .map((line) => formatBreakdownLine(line, bill.currency))
           .join("  ·  ");
         participantText += `\n      ${itemList}`;
       }

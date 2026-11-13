@@ -40,6 +40,11 @@ const migrations: { name: string; up: string }[] = [
     CREATE INDEX IF NOT EXISTS idx_bill_files_bill ON bill_files(bill_id);
     CREATE INDEX IF NOT EXISTS idx_bill_files_pending ON bill_files(deleted_at)`,
   },
+  {
+    name: "004_rename_pending_statuses",
+    up: `UPDATE bills SET status = 'awaiting_selection' WHERE status = 'pending';
+    UPDATE participants SET status = 'awaiting_confirmation' WHERE status = 'pending'`,
+  },
 ];
 
 export function runMigrations(): void {

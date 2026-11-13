@@ -11,7 +11,7 @@ export interface Bill {
   creator_id: string;
   channel_id: string;
   message_ts: string | null;
-  status: "pending" | "active" | "completed" | "cancelled";
+  status: "awaiting_selection" | "active" | "completed" | "cancelled";
   created_at: string;
   updated_at: string;
 }
@@ -28,7 +28,7 @@ export function createBill(input: CreateBillInput): Bill {
   const db = getDb();
   const id = uuidv4();
   const now = new Date().toISOString();
-  const initialStatus = input.splitType === "item" ? "pending" : "active";
+  const initialStatus = input.splitType === "item" ? "awaiting_selection" : "active";
 
   db.prepare(
     `INSERT INTO bills (id, name, total_amount, currency, split_type, creator_id, channel_id, status, created_at, updated_at)
@@ -86,7 +86,7 @@ export function getActiveBillsByChannel(channelId: string): Bill[] {
   const db = getDb();
   return db
     .prepare(
-      "SELECT * FROM bills WHERE channel_id = ? AND status IN ('active', 'pending') ORDER BY created_at DESC"
+      "SELECT * FROM bills WHERE channel_id = ? AND status IN ('active', 'awaiting_selection') ORDER BY created_at DESC"
     )
     .all(channelId) as Bill[];
 }
@@ -98,7 +98,7 @@ export function getActiveBillsByChannelAndCreator(
   const db = getDb();
   return db
     .prepare(
-      "SELECT * FROM bills WHERE channel_id = ? AND creator_id = ? AND status IN ('active', 'pending') ORDER BY created_at DESC"
+      "SELECT * FROM bills WHERE channel_id = ? AND creator_id = ? AND status IN ('active', 'awaiting_selection') ORDER BY created_at DESC"
     )
     .all(channelId, creatorId) as Bill[];
 }
@@ -112,7 +112,7 @@ export function getActiveBillsOwedByUserInChannel(
     .prepare(
       `SELECT DISTINCT b.* FROM bills b
        JOIN participants p ON p.bill_id = b.id
-       WHERE b.channel_id = ? AND b.status IN ('active', 'pending')
+       WHERE b.channel_id = ? AND b.status IN ('active', 'awaiting_selection')
          AND p.user_id = ? AND p.status != 'paid'
        ORDER BY b.created_at DESC`
     )

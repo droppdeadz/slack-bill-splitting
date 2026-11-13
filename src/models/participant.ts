@@ -7,7 +7,7 @@ export interface Participant {
   user_id: string;
   amount: number;
   has_selected: number; // 0 or 1 (SQLite boolean)
-  status: "unpaid" | "pending" | "paid";
+  status: "unpaid" | "awaiting_confirmation" | "paid";
   paid_at: string | null;
   created_at: string;
 }

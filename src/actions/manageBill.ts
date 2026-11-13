@@ -11,7 +11,7 @@ export function registerManageBillAction(app: App): void {
     const userId = body.user.id;
     const bill = getBillById(billId);
 
-    if (bill?.status !== "active" && bill?.status !== "pending") {
+    if (bill?.status !== "active" && bill?.status !== "awaiting_selection") {
       await client.chat.postEphemeral({
         channel: body.channel?.id || "",
         user: userId,

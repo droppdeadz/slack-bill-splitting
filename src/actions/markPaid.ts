@@ -29,12 +29,12 @@ export function registerMarkPaidAction(app: App): void {
       return;
     }
 
-    // Bill owner doesn't need to mark as paid (they paid upfront)
+    // Creator doesn't need to mark as paid (they paid upfront)
     if (bill.creator_id === userId) {
       await client.chat.postEphemeral({
         channel: body.channel?.id || "",
         user: userId,
-        text: "You're the bill owner — no need to mark as paid!",
+        text: "You created this bill — no need to mark as paid!",
       });
       return;
     }
@@ -86,8 +86,8 @@ export function registerMarkPaidAction(app: App): void {
 
     const userId = body.user.id;
 
-    // Update participant status to pending (waiting for creator confirmation)
-    updateParticipantStatus(participantId, "pending");
+    // Participant now waits for the Creator to confirm or reject
+    updateParticipantStatus(participantId, "awaiting_confirmation");
 
     // Check if a payment slip was uploaded
     const slipData = view.state.values.payment_slip?.payment_slip_input;

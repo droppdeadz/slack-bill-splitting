@@ -13,7 +13,7 @@ import { registerCancelBillAction } from "./actions/cancelBill";
 import { registerManageBillAction } from "./actions/manageBill";
 import { registerViewDetailsAction } from "./actions/viewDetails";
 import { registerSelectItemsAction } from "./actions/selectItems";
-import { registerCompleteCalcAction } from "./actions/completeCalc";
+import { registerFinalizeSharesAction } from "./actions/finalizeShares";
 import { registerPaymentHandlers, openPaymentModal } from "./commands/payment";
 import { registerPaymentInfoAction } from "./actions/paymentInfo";
 import { startReminderScheduler } from "./scheduler/reminders";
@@ -122,7 +122,7 @@ registerCancelBillAction(app);
 registerManageBillAction(app);
 registerViewDetailsAction(app);
 registerSelectItemsAction(app);
-registerCompleteCalcAction(app);
+registerFinalizeSharesAction(app);
 registerPaymentHandlers(app);
 registerPaymentInfoAction(app);
 

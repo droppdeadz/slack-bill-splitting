@@ -327,17 +327,15 @@ async function handleEqualSplit(
     trackBillFile(bill.id, metadata.receiptFileId, "receipt_image", creatorId);
   }
 
-  const amounts = splitEqual(totalAmount, participantIds.length);
-  const participantData = participantIds.map(
-    (userId: string, i: number) => ({
-      userId,
-      amount: amounts[i],
-    })
-  );
+  const shares = splitEqual(totalAmount, participantIds, creatorId);
+  const participantData = participantIds.map((userId: string) => ({
+    userId,
+    amount: shares.get(userId) ?? 0,
+  }));
 
   addParticipantsBulk(bill.id, participantData);
 
-  // Auto-mark creator as paid (bill owner paid upfront)
+  // Auto-mark creator as paid (the Creator paid upfront)
   const creatorParticipant = getParticipantByBillAndUser(bill.id, creatorId);
   if (creatorParticipant) {
     updateParticipantStatus(creatorParticipant.id, "paid");
@@ -415,7 +413,7 @@ async function handleItemSplit(
     participantIds.push(creatorId);
   }
 
-  // Create bill in "pending" status
+  // Create bill in "awaiting_selection" status
   const bill = createBill({
     name: billName,
     totalAmount,
@@ -443,7 +441,7 @@ async function handleItemSplit(
   const freshBill = getBillById(bill.id);
   if (!freshBill) return;
 
-  // Post bill card in channel (pending state — no payment buttons needed)
+  // Post bill card in channel (awaiting selection — no payment buttons needed)
   const result = await client.chat.postMessage({
     channel: channelId,
     blocks: buildBillCard(freshBill, participants, billItems),

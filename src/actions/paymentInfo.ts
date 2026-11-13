@@ -38,7 +38,7 @@ export function registerPaymentInfoAction(app: App): void {
         await client.chat.postEphemeral({
           channel: channelId,
           user: userId,
-          text: "You're the bill owner — no need to pay yourself!",
+          text: "You created this bill — no need to pay yourself!",
         });
         return;
       }
@@ -145,7 +145,7 @@ export function registerPaymentInfoAction(app: App): void {
         await client.chat.postEphemeral({
           channel: channelId,
           user: userId,
-          text: "You're the bill owner — no need to pay yourself!",
+          text: "You created this bill — no need to pay yourself!",
         });
         return;
       }

@@ -7,8 +7,8 @@ import {
   haveAllParticipantsSelected,
 } from "../models/participant";
 import { getItemsByBill } from "../models/billItem";
-import { setSelectionsForParticipant } from "../models/itemSelection";
-import { buildBillCard } from "../views/billCard";
+import { getItemSplitForBill, setSelectionsForParticipant } from "../models/itemSelection";
+import { buildBillCard, formatUnselectedItems } from "../views/billCard";
 
 export function registerSelectItemsAction(app: App): void {
   // Handle checkbox state changes (just acknowledge, no processing needed)
@@ -26,7 +26,7 @@ export function registerSelectItemsAction(app: App): void {
       const userId = body.user.id;
       const bill = getBillById(billId);
 
-      if (bill?.status !== "pending") {
+      if (bill?.status !== "awaiting_selection") {
         await client.chat.postMessage({
           channel: userId,
           text: "This bill is no longer accepting selections.",
@@ -111,7 +111,12 @@ export function registerSelectItemsAction(app: App): void {
 
       // Check if all participants have selected
       if (haveAllParticipantsSelected(billId)) {
-        // Notify the creator
+        // Notify the creator, warning about Unselected Items they will absorb
+        const { unselectedItems } = getItemSplitForBill(billId);
+        const unselectedNote =
+          unselectedItems.length > 0
+            ? `\n:warning: Nobody selected ${formatUnselectedItems(unselectedItems, bill.currency)} — it will be added to your share.`
+            : "";
         await client.chat.postMessage({
           channel: bill.creator_id,
           blocks: [
@@ -119,7 +124,7 @@ export function registerSelectItemsAction(app: App): void {
               type: "section",
               text: {
                 type: "mrkdwn",
-                text: `:tada: All participants have selected their items for *${bill.name}*!\nGo to <#${bill.channel_id}> and click *Complete Calculation* to finalize the bill.`,
+                text: `:tada: All participants have selected their items for *${bill.name}*!${unselectedNote}\nGo to <#${bill.channel_id}> and click *Finalize Shares* to start payment tracking.`,
               },
             },
           ],

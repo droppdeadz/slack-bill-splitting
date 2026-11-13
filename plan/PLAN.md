@@ -24,13 +24,13 @@ Slack Bill Splitting is a Slack bot focused on bill splitting and payment tracki
 
 ### 3. Finalize Calculation (Item-based split only)
 - Once **all participants** have selected their items, the creator is notified
-- Creator clicks **Complete Calculation** to finalize each person's total
-- Per-person amounts are computed from their selected items
+- Creator clicks **Finalize Shares** to fix each person's share
+- Shares are computed from selected items; items nobody selected and rounding remainders go to the creator's share, so shares always sum to the bill total
 - Bill moves into payment tracking phase
 
 ### 4. Bill Card (Interactive Message)
 - **Equal split:** Goes directly to active payment tracking state
-- **Item-based — pending selection:** Shows items list, participant selection progress
+- **Item-based — awaiting selection:** Shows items list, participant selection progress
 - **Item-based — active (payment tracking):** Shows each participant with their calculated amount and payment status
 - Buttons change based on state: `Manage Bill` opens a creator-only modal with `Remind All` and `Cancel Bill`
 - Payment phase buttons: `Mark as Paid`, `Manage Bill`
@@ -86,7 +86,7 @@ User types: /<command> create
      - Split type: Item-based
      - Items with costs (e.g., "Salmon Sushi ฿350", "Ramen ฿280", ...)
      - Participants: Select @users
-  -> Bot posts bill card in channel (status: pending selection)
+  -> Bot posts bill card in channel (status: awaiting_selection)
   -> Bot DMs each participant to select their items
 ```
 
@@ -119,8 +119,9 @@ Participant receives DM from bot:
 ```
 Creator receives notification:
   "All participants have selected their items for 'Lunch at Sushi place'."
-  -> Creator clicks "Complete Calculation"
-  -> Per-person amounts are computed from selected items
+  (warns which items nobody selected — they will be added to the creator's share)
+  -> Creator clicks "Finalize Shares"
+  -> Shares are computed from selected items (unselected items + rounding -> creator)
   -> Bill card updates to show each person's owed amount
   -> Bill moves to active payment tracking (status: active)
 ```
@@ -196,7 +197,7 @@ slack-bill-splitting/
 │   │   ├── markPaid.ts         # "Mark as Paid" button + modal submission
 │   │   ├── confirmPayment.ts   # Creator confirms/rejects payment
 │   │   ├── selectItems.ts      # Participant selects items via DM
-│   │   ├── completeCalc.ts     # Creator finalizes bill calculation
+│   │   ├── finalizeShares.ts   # Creator finalizes shares (Finalize Shares)
 │   │   ├── manageBill.ts       # "Manage Bill" button → creator-only modal
 │   │   ├── remindAll.ts        # "Remind All" action handler (from modal)
 │   │   ├── cancelBill.ts       # "Cancel Bill" action handler (from modal)
@@ -205,7 +206,7 @@ slack-bill-splitting/
 │   ├── views/
 │   │   ├── createBillModal.ts  # Modal form for creating bill (items + participants)
 │   │   ├── markPaidModal.ts    # Modal for marking as paid with optional slip upload
-│   │   ├── billCard.ts         # Bill card Block Kit message (pending/active states)
+│   │   ├── billCard.ts         # Bill card Block Kit message (awaiting selection/active states)
 │   │   ├── itemSelectMessage.ts # DM item selection checklist for participants
 │   │   ├── reminderMessage.ts  # DM reminder message
 │   │   ├── resultModal.ts      # Shared result modal for manage bill actions
@@ -241,7 +242,7 @@ slack-bill-splitting/
 | creator_id   | TEXT      | Slack user ID of creator          |
 | channel_id   | TEXT      | Slack channel where bill was posted |
 | message_ts   | TEXT      | Slack message timestamp (for updating) |
-| status       | TEXT      | "pending" (item selection, item-based only), "active" (payment tracking), "completed", "cancelled" |
+| status       | TEXT      | "awaiting_selection" (item-based only), "active" (payment tracking), "completed", "cancelled" |
 | created_at   | DATETIME  | Timestamp                         |
 | updated_at   | DATETIME  | Timestamp                         |
 
@@ -262,7 +263,7 @@ slack-bill-splitting/
 | user_id         | TEXT      | Slack user ID                  |
 | amount          | REAL      | Calculated amount owed (set after finalization) |
 | has_selected    | BOOLEAN   | Whether participant has completed item selection |
-| status          | TEXT      | "unpaid", "pending", "paid"    |
+| status          | TEXT      | "unpaid", "awaiting_confirmation", "paid" |
 | paid_at         | DATETIME  | When payment was confirmed     |
 | created_at      | DATETIME  | Timestamp                      |
 
@@ -298,7 +299,7 @@ slack-bill-splitting/
 | created_at    | DATETIME  | Timestamp                                           |
 | deleted_at    | DATETIME  | NULL until deleted/handled by cleanup               |
 
-> **Calculation:** When the creator finalizes, each item's cost is divided equally among all participants who selected it. A participant's total is the sum of their shares across all selected items.
+> **Calculation:** All math is in integer satang. When the creator finalizes shares, each item's cost is divided equally among all participants who selected it, rounded down. Items nobody selected and every rounding remainder are added to the creator's share, so the shares of all participants always add up exactly to the bill total. Equal splits follow the same rule (non-creators rounded down, remainder to the creator).
 
 ---
 
@@ -348,14 +349,14 @@ slack-bill-splitting/
 - [x] `/<command> me` as true DM — *Opens a DM conversation with the user and posts the outstanding bills summary there. Shows brief ephemeral confirmation in the original channel.*
 - [x] Item-based bill creation — *Add "Item-based" as a split type alongside "Equal". When selected, creator enters bill name, list of items with costs, and selects participants. Total is calculated from items automatically. Replaces the old "Custom Amounts" per-person input.*
 - [x] Participant item selection via DM — *After bill creation, bot DMs each participant with an interactive checklist of items. Participant selects which items they owe for. Shared items (selected by multiple people) have their cost split equally among selectors. Bill card updates selection progress.*
-- [x] Creator finalizes calculation — *Once all participants have selected items, creator is notified and clicks "Complete Calculation". Per-person amounts are computed and the bill moves to active payment tracking.*
-- [x] Bill status lifecycle — *Statuses: "pending" (waiting for item selections, item-based only), "active" (payment tracking), "completed", "cancelled". Bill card UI adapts to current status.*
+- [x] Creator finalizes shares — *Once all participants have selected items, creator is notified and clicks "Finalize Shares". Shares are computed and the bill moves to active payment tracking.*
+- [x] Bill status lifecycle — *Statuses: "awaiting_selection" (waiting for item selections, item-based only), "active" (payment tracking), "completed", "cancelled". Bill card UI adapts to current status.*
 
-### Phase 3.5: Bill Owner Auto-Pay — COMPLETED
+### Phase 3.5: Creator Auto-Pay — COMPLETED
 - [x] Auto-include bill creator as participant — *Creator is always added to the participants list even if not explicitly selected*
-- [x] Auto-mark creator as paid on equal split — *Bill owner is automatically marked as "Paid" since they paid the bill upfront and collect from others*
-- [x] Auto-mark creator as paid after item-based calculation — *After "Complete Calculation", the creator's share is auto-marked as paid*
-- [x] Block "Mark as Paid" for bill owner — *If the bill owner clicks "Mark as Paid", they see a message that they don't need to pay*
+- [x] Auto-mark creator as paid on equal split — *The creator is automatically marked as "Paid" since they paid the bill upfront and collect from others*
+- [x] Auto-mark creator as paid after item-based calculation — *After "Finalize Shares", the creator's share is auto-marked as paid*
+- [x] Block "Mark as Paid" for creator — *If the creator clicks "Mark as Paid", they see a message that they don't need to pay*
 - [x] Auto-complete bill if creator is only participant — *Edge case: if no other participants, bill completes immediately*
 
 ### Phase 4: Bill Image Recognition — COMPLETED
@@ -382,6 +383,15 @@ slack-bill-splitting/
 - [x] Scheduled file cleanup — *Daily cron job (default: 3 AM) queries files on completed/cancelled bills older than 7 days, deletes bot-uploaded files (QR codes) via `files.delete`, and gracefully handles user-owned files (payment slips, receipt images) that the bot can't delete.*
 - [x] `FILE_CLEANUP_CRON` config — *Configurable cron schedule for file cleanup (default: `0 3 * * *`).*
 
+### Phase 7: Domain Model Alignment — COMPLETED
+> Align code with the vocabulary in [GLOSSARY.md](../GLOSSARY.md): shares always sum to the bill total, and no overloaded status names.
+- [x] Unselected items go to the creator — *Items nobody selected are added to the creator's share and shown on the bill card as "Unselected". The creator is warned in the "all selected" DM and again after finalizing.*
+- [x] Rounding remainder goes to the creator — *Share math is done in satang. Non-creator shares are rounded down; the remainder goes to the creator (equal and item-based splits). Item breakdowns are computed by the same function as the shares.*
+- [x] Service charge / VAT kept as items — *Receipt parser keeps service charge and VAT lines as items, unless the receipt total shows they were already included in item prices. Discount lines are still skipped.*
+- [x] Renamed statuses — *Bill "pending" → "awaiting_selection"; participant "pending" → "awaiting_confirmation" (migration 004 rewrites existing rows).*
+- [x] "Complete Calculation" → "Finalize Shares" — *Button label, action_id (`finalize_shares`; legacy `complete_calculation` still handled for old cards) and file (`actions/finalizeShares.ts`).*
+- [x] User-facing "bill owner" wording replaced with "creator".
+
 ---
 
 ## Bill Card Design (Block Kit)
@@ -405,7 +415,7 @@ slack-bill-splitting/
 └──────────────────────────────────────┘
 ```
 
-### Item-based — Pending Selection State
+### Item-based — Awaiting Selection State
 ```
 ┌──────────────────────────────────────┐
 │  Lunch at Sushi Place       ฿1,320  │

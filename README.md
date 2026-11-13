@@ -22,8 +22,10 @@ A Slack bot focused on bill splitting and payment tracking. Create bills, split 
 
 **Item-based split** — Enter individual items with costs and select participants:
 1. Bot **DMs each participant** to select which items they owe for
-2. Once everyone has selected, the **creator finalizes** the calculation
-3. Per-person amounts are computed and **payment tracking** begins
+2. Once everyone has selected, the **creator clicks Finalize Shares**
+3. Each person's share is fixed and **payment tracking** begins
+
+Items nobody selected and leftover satang from rounding go to the creator's share, so everyone's shares always add up exactly to the bill total. Service charge and VAT are treated as ordinary items.
 
 Both flows end with: participants click **Mark as Paid**, optionally attach a payment slip (photo/screenshot), creator confirms (with the slip visible if provided), and the bill auto-completes when everyone has paid.
 
@@ -152,7 +154,7 @@ src/
 │   ├── markPaid.ts         # "Mark as Paid" button + modal submission
 │   ├── confirmPayment.ts   # Creator confirms/rejects payment
 │   ├── selectItems.ts      # Participant selects items via DM
-│   ├── completeCalc.ts     # Creator finalizes bill calculation
+│   ├── finalizeShares.ts   # Creator finalizes shares (Finalize Shares)
 │   ├── manageBill.ts       # "Manage Bill" button → creator-only modal
 │   ├── remindAll.ts        # "Remind All" action handler
 │   ├── cancelBill.ts       # "Cancel Bill" action handler
@@ -161,7 +163,7 @@ src/
 ├── views/
 │   ├── createBillModal.ts  # Modal form (items + participants)
 │   ├── markPaidModal.ts    # Modal for marking paid with optional slip upload
-│   ├── billCard.ts         # Bill card (pending/active states)
+│   ├── billCard.ts         # Bill card (awaiting selection/active states)
 │   ├── itemSelectMessage.ts # DM item selection for participants
 │   ├── reminderMessage.ts  # DM reminder message
 │   ├── resultModal.ts      # Shared result modal for manage bill actions
@@ -190,9 +192,9 @@ src/
 
 ## Roadmap
 
-See [plan/PLAN.md](plan/PLAN.md) for the full implementation plan and roadmap.
+See [plan/PLAN.md](plan/PLAN.md) for the full implementation plan and roadmap, and [GLOSSARY.md](GLOSSARY.md) for the domain vocabulary.
 
-**Completed:** Equal split, item-based split (enter items + costs, participants self-select items via DM, creator finalizes calculation), payment confirmation flow with optional payment slip upload, bill management commands, manual & automatic reminders, list filters, DM for outstanding bills, full bill status lifecycle (pending/active/completed/cancelled), bill owner auto-included and auto-paid, receipt image scanning (OCR to auto-fill items from receipt photos), payment method management (PromptPay + bank account), PromptPay QR code generation on bill cards, bank account info display, manual slip verification (creator confirms/rejects), automatic file cleanup (uploaded files deleted 7 days after bill completion).
+**Completed:** Equal split, item-based split (enter items + costs, participants self-select items via DM, creator finalizes calculation), payment confirmation flow with optional payment slip upload, bill management commands, manual & automatic reminders, list filters, DM for outstanding bills, full bill status lifecycle (awaiting selection/active/completed/cancelled), bill creator auto-included and auto-paid, unselected items and rounding remainders absorbed by the creator so shares always sum to the bill total, receipt image scanning (OCR to auto-fill items from receipt photos), payment method management (PromptPay + bank account), PromptPay QR code generation on bill cards, bank account info display, manual slip verification (creator confirms/rejects), automatic file cleanup (uploaded files deleted 7 days after bill completion).
 
 ## License
 

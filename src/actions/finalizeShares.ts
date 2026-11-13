@@ -8,14 +8,17 @@ import {
   areAllParticipantsPaid,
 } from "../models/participant";
 import { getItemsByBill } from "../models/billItem";
-import { getAllSelectionsByBill, getItemBreakdownsByParticipant } from "../models/itemSelection";
+import { getItemSplitForBill } from "../models/itemSelection";
 import { getPaymentMethodByUser } from "../models/paymentMethod";
-import { buildBillCard } from "../views/billCard";
-import { calculateItemSplits } from "../utils/splitCalculator";
+import { buildBillCard, formatUnselectedItems } from "../views/billCard";
 
-export function registerCompleteCalcAction(app: App): void {
+// "complete_calculation" is the legacy action_id still present on cards posted
+// before the rename to Finalize Shares.
+const FINALIZE_SHARES_ACTION = /^(finalize_shares|complete_calculation)$/;
+
+export function registerFinalizeSharesAction(app: App): void {
   app.action<BlockAction<ButtonAction>>(
-    "complete_calculation",
+    FINALIZE_SHARES_ACTION,
     async ({ ack, body, client, action }) => {
       await ack();
 
@@ -23,11 +26,11 @@ export function registerCompleteCalcAction(app: App): void {
       const userId = body.user.id;
       const bill = getBillById(billId);
 
-      if (bill?.status !== "pending") {
+      if (bill?.status !== "awaiting_selection") {
         await client.chat.postEphemeral({
           channel: body.channel?.id || "",
           user: userId,
-          text: "This bill is not in pending status.",
+          text: "This bill is no longer awaiting item selections.",
         });
         return;
       }
@@ -37,7 +40,7 @@ export function registerCompleteCalcAction(app: App): void {
         await client.chat.postEphemeral({
           channel: body.channel?.id || "",
           user: userId,
-          text: "Only the bill creator can finalize the calculation.",
+          text: "Only the bill creator can finalize shares.",
         });
         return;
       }
@@ -52,22 +55,14 @@ export function registerCompleteCalcAction(app: App): void {
         return;
       }
 
-      // Calculate per-person amounts from item selections
-      const items = getItemsByBill(billId);
+      // Turn Selections into Shares (Creator absorbs Unselected Items + rounding)
+      const split = getItemSplitForBill(billId);
       const participants = getParticipantsByBill(billId);
-
-      // Get all selections for this bill
-      const allSelections = getAllSelectionsByBill(billId);
-
-      const participantTotals = calculateItemSplits(items, allSelections);
-
-      // Update each participant's amount
       for (const participant of participants) {
-        const amount = participantTotals.get(participant.id) || 0;
-        updateParticipantAmount(participant.id, amount);
+        updateParticipantAmount(participant.id, split.shares.get(participant.id) ?? 0);
       }
 
-      // Auto-mark creator as paid (bill owner paid upfront)
+      // Auto-mark creator as paid (the Creator paid upfront)
       const creatorParticipant = participants.find(
         (p) => p.user_id === bill.creator_id
       );
@@ -86,22 +81,27 @@ export function registerCompleteCalcAction(app: App): void {
       const updatedBill = getBillById(billId);
       if (!updatedBill) return;
       const updatedParticipants = getParticipantsByBill(billId);
-      const breakdowns = getItemBreakdownsByParticipant(billId);
+      const items = getItemsByBill(billId);
       const creatorPm = getPaymentMethodByUser(bill.creator_id);
 
       if (updatedBill.message_ts) {
         await client.chat.update({
           channel: updatedBill.channel_id,
           ts: updatedBill.message_ts,
-          blocks: buildBillCard(updatedBill, updatedParticipants, items, breakdowns, creatorPm),
-          text: `Bill finalized: ${updatedBill.name}`,
+          blocks: buildBillCard(updatedBill, updatedParticipants, items, split.breakdowns, creatorPm),
+          text: `Shares finalized: ${updatedBill.name}`,
         });
       }
+
+      const unselectedNote =
+        split.unselectedItems.length > 0
+          ? `\nNobody selected ${formatUnselectedItems(split.unselectedItems, bill.currency)} — added to your share.`
+          : "";
 
       await client.chat.postEphemeral({
         channel: body.channel?.id || "",
         user: userId,
-        text: `:white_check_mark: Bill "${bill.name}" has been finalized! Payment tracking is now active.`,
+        text: `:white_check_mark: Shares for "${bill.name}" are finalized! Payment tracking is now active.${unselectedNote}`,
       });
     }
   );
